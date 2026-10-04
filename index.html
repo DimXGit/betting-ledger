@@ -24,13 +24,34 @@
 
             <h2>My Ledger</h2>
 
-            <div class="empty-state">
-                <p>No entries yet.</p>
+           <div class="empty-state">
+            <p id="emptyMessage">No entries yet.</p>
 
-                <button id="addBetButton">
-                    + Write Entry
-                </button>
-            </div>
+            <form id="betForm">
+             <h3>New Entry</h3>
+
+            <label>
+                Event
+                <input type="text" id="event" placeholder="Arsenal vs Chelsea">
+            </label>
+
+            <label>
+                Odds
+                <input type="number" id="odds" placeholder="1.85" step="0.01">
+            </label>
+
+            <label>
+                Stake
+                <input type="number" id="stake" placeholder="10" step="0.01">
+            </label>
+
+            <button type="submit">
+                Write Entry
+            </button>
+        </form>
+
+        <div id="betList"></div>
+</div>
 
         </section>
 
