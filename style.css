@@ -109,3 +109,20 @@ button {
 button:hover {
     opacity: 0.85;
 }
+
+/* betting ledger entries */
+.bet-entry {
+    background: #f1e2c2;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 4px;
+    box-shadow: 0 3px 8px rgba(60, 40, 20, 0.12);
+
+}
+
+bet-entry p {
+    margin: 6px 0;
+}
+
+
+
