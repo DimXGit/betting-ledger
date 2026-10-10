@@ -30,39 +30,84 @@
             <form id="betForm">
              <h3>New Entry</h3>
             
-            <label>
-                Date
-                <input type="date" id="date">
-            </label>
+<div class="form-grid">
 
-            <label>
-                Event
-                <input type="text" id="event" placeholder="Arsenal vs Chelsea">
-            </label>
+    <div class="form-field">
+        <label for="betType">Bet Type</label>
+        <select id="betType" required>
+            <option value="single">Single</option>
+            <option value="accumulator">Accumulator (Paroli)</option>
+        </select>
+    </div>
 
-            <label>
-                Sport
-                <input type="text" id="sport" placeholder="Football">
-            </label>
+    <div class="form-field">
+        <label for="date">Date</label>
+        <input type="date" id="date" required>
+    </div>
 
-            <label>
-                Market
-                <input type="text" id="market" placeholder="Over 2.5">
-            </label>
-            
-            <label>
-                Odds
-                <input type="number" id="odds" placeholder="1.85" step="0.01">
-            </label>
+    <div class="form-field">
+        <label for="sport">Sport</label>
+        <input type="text" id="sport" placeholder="Football" required>
+    </div>
 
-            <label>
-                Stake
-                <input type="number" id="stake" placeholder="10" step="0.01">
-            </label>
+    <div class="form-field">
+        <label for="event">Event / Match</label>
+        <input
+            type="text"
+            id="event"
+            placeholder="Arsenal vs Chelsea"
+            required
+        >
+    </div>
 
-            <button type="submit">
-                Write Entry
-            </button>
+    <div class="form-field">
+        <label for="market">Market</label>
+        <input
+            type="text"
+            id="market"
+            placeholder="Over 2.5, Home Win, BTTS..."
+            required
+        >
+    </div>
+
+    <div class="form-field">
+        <label for="bookmaker">Bookmaker</label>
+        <input
+            type="text"
+            id="bookmaker"
+            placeholder="Stoiximan, Novibet..."
+        >
+    </div>
+
+    <div class="form-field">
+        <label for="odds">Odds</label>
+        <input
+            type="number"
+            id="odds"
+            min="1.01"
+            step="0.01"
+            placeholder="2.00"
+            required
+        >
+    </div>
+
+    <div class="form-field">
+        <label for="stake">Stake (€)</label>
+        <input
+            type="number"
+            id="stake"
+            min="0.01"
+            step="0.01"
+            placeholder="10.00"
+            required
+        >
+    </div>
+
+</div>
+
+<button type="submit">+ Write Entry</button>
+
+           
         </form>
 
         <div id="betList"></div>
