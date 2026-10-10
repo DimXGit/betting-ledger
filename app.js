@@ -14,38 +14,71 @@ function setTodayDate() {
 }  
 
 setTodayDate();
+
+
+function renderBets() {
+    betList.innerHTML = "";
+
+    bets.forEach(function (bet) {
+        const betEntry = document.createElement("div");
+        betEntry.classList.add("bet-entry");
+
+        betEntry.innerHTML = `
+            <p>${bet.date}</p>
+            <p>${bet.event}</p>
+            <p>${bet.sport} · ${bet.market}</p>
+            <p>Odds: ${bet.odds}</p>
+            <p>Stake: €${bet.stake}</p>
+        `;
+
+        betList.appendChild(betEntry);
+    });
+
+    emptyMessage.style.display = bets.length == 0? "block" : "none";
+}
+
+
 // Handle form submission
 betForm.addEventListener("submit", function(event) {
-    event.preventDefault();
+        event.preventDefault();
 
-    const date = document.getElementById("date").value;
-    const eventName = document.getElementById("event").value;
-    const sport = document.getElementById("sport").value;
-    const market = document.getElementById("market").value;
-    const odds = document.getElementById("odds").value;
-    const stake = document.getElementById("stake").value;
+        const date = document.getElementById("date").value;
+        const eventName = document.getElementById("event").value;
+        const sport = document.getElementById("sport").value;
+        const market = document.getElementById("market").value;
+        const odds = document.getElementById("odds").value;
+        const stake = document.getElementById("stake").value;
 
- const bet = {
-    date: date,
-    event: eventName,
-    sport: sport,
-    market: market,
-    odds: odds,
-    stake: stake
- };
+    // Create a bet object
+        const bet = {
+            date: date,
+            event: eventName,
+            sport: sport,
+            market: market,
+            odds: odds,
+            stake: stake
+        };
 
- bets.push(bet);
- console.log(bets);   
+    // Store the bet and refresh the ledger
+    bets.push(bet);
+    renderBets();
+
+    // Reset the form
+    betForm.reset();
+    setTodayDate();
+
+    console.log(bets);   
     
+});    
 
-    //Create a new ledger entry
+ /*   //Create a new ledger entry
     const betEntry = document.createElement("div");
     betEntry.classList.add("bet-entry");
 
     betEntry.innerHTML = `
         <p>${date}</p>
         <p>${eventName}</p>
-         <p>${sport} · ${market}</p>
+        <p>${sport} · ${market}</p>
         <p>Odds: ${odds}</p>
         <p>Stake: €${stake}</p>
     `;
@@ -64,3 +97,4 @@ betForm.addEventListener("submit", function(event) {
     console.log(odds);
     console.log(stake);
 });
+*/
