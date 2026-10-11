@@ -2,7 +2,45 @@ const betForm = document.getElementById("betForm");
 const betList = document.getElementById("betList");
 const emptyMessage = document.getElementById("emptyMessage");
 
-const bets = [];
+const STORAGE_KEY = "teft.bets";
+
+// Reads saved bets from localStorage. Always returns an array,
+// even if nothing is saved yet or the saved data is damaged.
+function loadBets() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved === null) {
+            return [];
+        }
+
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+
+        // Keep only entries with usable numbers, so one bad entry
+        // can't crash renderBets() later (toFixed needs real numbers)
+        return parsed.filter(function (bet) {
+            return bet
+                && typeof bet.odds === "number"
+                && typeof bet.stake === "number";
+        });
+    } catch (error) {
+        console.error("Could not load bets:", error);
+        return [];
+    }
+}
+
+// Writes the whole bets array to localStorage as text
+function saveBets() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
+    } catch (error) {
+        console.error("Could not save bets:", error);
+    }
+}
+
+const bets = loadBets();
 
 function setTodayDate() {
     const today = new Date();
@@ -42,7 +80,6 @@ function renderBets() {
         <span class="bet-odds">@ ${bet.odds.toFixed(2)}</span>
         <span class="bet-stake">€${bet.stake.toFixed(2)}</span>
     </div>
-           
         `;
 
         betList.appendChild(betEntry);
@@ -67,6 +104,7 @@ betForm.addEventListener("submit", function (event) {
     };
 
     bets.push(bet);
+    saveBets();      // new: persist after every change
     renderBets();
 
     betForm.reset();
