@@ -171,7 +171,7 @@ button:hover {
     border: none;
     border-radius: 7px;
 
-    background: #704923;
+    background: #744b23;
     color: #fffaf0;
 
     font-size: 15px;
@@ -289,3 +289,4 @@ button:hover {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
+
