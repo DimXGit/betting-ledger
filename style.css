@@ -251,6 +251,24 @@ button:hover {
     font-weight: bold;
 }
 
+.delete-btn {
+    margin-top: 4px;
+    padding: 4px 10px;
+
+    background: transparent;
+    color: #8a3a2c;
+    border: 1px solid rgba(138, 58, 44, 0.45);
+    border-radius: 5px;
+
+    font-size: 12px;
+}
+
+.delete-btn:hover {
+    background: #8a3a2c;
+    color: #fffaf0;
+    opacity: 1;
+}
+
 /* ---------- Mobile ---------- */
 
 @media (max-width: 560px) {

@@ -40,7 +40,8 @@ function saveBets() {
     }
 }
 
-const bets = loadBets();
+// let (not const) because deleteBet replaces the array with a filtered one
+let bets = loadBets();
 
 function setTodayDate() {
     const today = new Date();
@@ -55,6 +56,15 @@ function escapeHtml(text) {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Removes the bet with the given id, then saves and redraws
+function deleteBet(id) {
+    bets = bets.filter(function (bet) {
+        return bet.id !== id;
+    });
+    saveBets();
+    renderBets();
 }
 
 function renderBets() {
@@ -79,6 +89,7 @@ function renderBets() {
     <div class="bet-numbers">
         <span class="bet-odds">@ ${bet.odds.toFixed(2)}</span>
         <span class="bet-stake">€${bet.stake.toFixed(2)}</span>
+        <button type="button" class="delete-btn" data-id="${bet.id}">Delete</button>
     </div>
         `;
 
@@ -87,6 +98,26 @@ function renderBets() {
 
     emptyMessage.style.display = bets.length === 0 ? "block" : "none";
 }
+
+// One listener on the list handles every Delete button (event delegation)
+betList.addEventListener("click", function (event) {
+    const button = event.target.closest(".delete-btn");
+    if (!button) {
+        return; // click was somewhere else in the list
+    }
+
+    const id = Number(button.dataset.id);
+    const bet = bets.find(function (b) {
+        return b.id === id;
+    });
+    if (!bet) {
+        return;
+    }
+
+    if (confirm('Delete "' + bet.event + '"?')) {
+        deleteBet(id);
+    }
+});
 
 betForm.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -104,7 +135,7 @@ betForm.addEventListener("submit", function (event) {
     };
 
     bets.push(bet);
-    saveBets();      // new: persist after every change
+    saveBets();
     renderBets();
 
     betForm.reset();
