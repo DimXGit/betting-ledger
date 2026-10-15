@@ -10,6 +10,15 @@ const statWinRate = document.getElementById("statWinRate");
 const statStaked = document.getElementById("statStaked");
 const statRecord = document.getElementById("statRecord");
 
+const filtersEl = document.getElementById("filters");
+const filterResult = document.getElementById("filterResult");
+const filterSport = document.getElementById("filterSport");
+const filterBookmaker = document.getElementById("filterBookmaker");
+const filterFrom = document.getElementById("filterFrom");
+const filterTo = document.getElementById("filterTo");
+const filterCount = document.getElementById("filterCount");
+const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+
 const STORAGE_KEY = "teft.bets";
 
 // Reads saved bets from localStorage. Always returns an array,
@@ -157,10 +166,10 @@ function calcStats(allBets) {
     };
 }
 
-// Writes the totals into the dashboard.
+// Writes the totals of the given list into the dashboard.
 // textContent is used (not innerHTML) because these are plain text values.
-function renderStats() {
-    const stats = calcStats(bets);
+function renderStats(list) {
+    const stats = calcStats(list);
 
     statProfit.textContent = describeProfit(stats.profit).text;
     statProfit.className = "stat-value"
@@ -176,10 +185,104 @@ function renderStats() {
 
     statStaked.textContent = "€" + stats.staked.toFixed(2);
 
-    statRecord.textContent = bets.length === 0
+    statRecord.textContent = list.length === 0
         ? ""
         : stats.won + " won · " + stats.lost + " lost · "
             + stats.voided + " void · " + stats.pending + " pending";
+}
+
+// ---------- Filtering ----------
+
+// Collects the distinct values of one bet field (e.g. "sport"), ignoring
+// case and empty values. "Football" and "football" count as the same sport.
+// Returns [{ value: "football", label: "Football" }, ...] sorted by label.
+function uniqueValues(field) {
+    const seen = new Map();
+
+    bets.forEach(function (bet) {
+        const original = String(bet[field] || "").trim();
+        if (original === "") {
+            return;
+        }
+        const key = original.toLowerCase();
+        if (!seen.has(key)) {
+            seen.set(key, original); // keep the first spelling for the label
+        }
+    });
+
+    return [...seen.entries()]
+        .map(function (entry) {
+            return { value: entry[0], label: entry[1] };
+        })
+        .sort(function (a, b) {
+            return a.label.localeCompare(b.label);
+        });
+}
+
+// Rebuilds a dropdown from the current bets, keeping the selection if it
+// still exists (e.g. after deleting the only bet of the selected sport it
+// falls back to "All" instead of filtering by something that's gone)
+function fillSelect(select, field) {
+    const previous = select.value;
+    const options = uniqueValues(field);
+
+    select.innerHTML = "";
+
+    const allOption = document.createElement("option");
+    allOption.value = "all";
+    allOption.textContent = "All";
+    select.appendChild(allOption);
+
+    options.forEach(function (item) {
+        const option = document.createElement("option");
+        option.value = item.value;
+        option.textContent = item.label; // textContent is safe, no escaping needed
+        select.appendChild(option);
+    });
+
+    const stillExists = options.some(function (item) {
+        return item.value === previous;
+    });
+    select.value = stillExists ? previous : "all";
+}
+
+// Returns only the bets that match every active filter
+function getFilteredBets() {
+    const result = filterResult.value;
+    const sport = filterSport.value;
+    const bookmaker = filterBookmaker.value;
+    const from = filterFrom.value; // "" when empty
+    const to = filterTo.value;
+
+    return bets.filter(function (bet) {
+        if (result !== "all" && bet.result !== result) {
+            return false;
+        }
+        if (sport !== "all" && String(bet.sport || "").trim().toLowerCase() !== sport) {
+            return false;
+        }
+        if (bookmaker !== "all" && String(bet.bookmaker || "").trim().toLowerCase() !== bookmaker) {
+            return false;
+        }
+        // Dates are "YYYY-MM-DD" text, which sorts in the same order as the
+        // real dates, so plain < and > comparisons work
+        if (from !== "" && bet.date < from) {
+            return false;
+        }
+        if (to !== "" && bet.date > to) {
+            return false;
+        }
+        return true; // passed every check
+    });
+}
+
+function clearFilters() {
+    filterResult.value = "all";
+    filterSport.value = "all";
+    filterBookmaker.value = "all";
+    filterFrom.value = "";
+    filterTo.value = "";
+    renderBets();
 }
 
 // ---------- Edit / delete ----------
@@ -239,10 +342,17 @@ function deleteBet(id) {
 // ---------- Rendering ----------
 
 function renderBets() {
+    // Refresh the dropdowns first, because bets may have been added or removed
+    fillSelect(filterSport, "sport");
+    fillSelect(filterBookmaker, "bookmaker");
+    filtersEl.hidden = bets.length === 0;
+
+    const visible = getFilteredBets();
+
     betList.innerHTML = "";
 
     // Newest first, without changing the original array
-    const newestFirst = [...bets].reverse();
+    const newestFirst = [...visible].reverse();
 
     newestFirst.forEach(function (bet) {
         const betEntry = document.createElement("div");
@@ -273,11 +383,24 @@ function renderBets() {
         betList.appendChild(betEntry);
     });
 
-    emptyMessage.style.display = bets.length === 0 ? "block" : "none";
+    // Two different empty situations need two different messages
+    if (bets.length === 0) {
+        emptyMessage.textContent = "No entries yet.";
+        emptyMessage.style.display = "block";
+    } else if (visible.length === 0) {
+        emptyMessage.textContent = "No bets match these filters.";
+        emptyMessage.style.display = "block";
+    } else {
+        emptyMessage.style.display = "none";
+    }
+
+    filterCount.textContent = visible.length === bets.length
+        ? bets.length + (bets.length === 1 ? " bet" : " bets")
+        : "Showing " + visible.length + " of " + bets.length + " bets";
 
     // Every change to the list goes through renderBets, so the stats
     // are refreshed here and can never get out of sync with the list
-    renderStats();
+    renderStats(visible);
 }
 
 // One listener on the list handles every Edit and Delete button (event delegation)
@@ -305,6 +428,11 @@ betList.addEventListener("click", function (event) {
 });
 
 cancelEditBtn.addEventListener("click", stopEditing);
+
+// "change" bubbles up from every dropdown and date input inside the filter
+// box, so one listener covers all five fields
+filtersEl.addEventListener("change", renderBets);
+clearFiltersBtn.addEventListener("click", clearFilters);
 
 betForm.addEventListener("submit", function (event) {
     event.preventDefault();

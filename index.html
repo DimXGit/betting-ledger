@@ -110,6 +110,51 @@
                     <button type="button" id="cancelEditBtn" class="cancel-btn" hidden>Cancel Edit</button>
 
             </form>
+            <div class="filters" id="filters" hidden>
+    <h3>Filter History</h3>
+
+    <div class="filter-grid">
+        <div class="form-field">
+            <label for="filterResult">Result</label>
+            <select id="filterResult">
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="won">Won</option>
+                <option value="lost">Lost</option>
+                <option value="void">Void</option>
+            </select>
+        </div>
+
+        <div class="form-field">
+            <label for="filterSport">Sport</label>
+            <select id="filterSport">
+                <option value="all">All</option>
+            </select>
+        </div>
+
+        <div class="form-field">
+            <label for="filterBookmaker">Bookmaker</label>
+            <select id="filterBookmaker">
+                <option value="all">All</option>
+            </select>
+        </div>
+
+        <div class="form-field">
+            <label for="filterFrom">From</label>
+            <input type="date" id="filterFrom">
+        </div>
+
+        <div class="form-field">
+            <label for="filterTo">To</label>
+            <input type="date" id="filterTo">
+        </div>
+    </div>
+
+    <div class="filter-footer">
+        <span class="filter-count" id="filterCount"></span>
+        <button type="button" id="clearFiltersBtn" class="clear-btn">Clear Filters</button>
+    </div>
+</div>
             <div class="empty-state">
                 <p id="emptyMessage">No entries yet.</p>
             </div>
