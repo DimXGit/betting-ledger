@@ -251,6 +251,25 @@ button:hover {
     font-weight: bold;
 }
 
+.bet-profit {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.profit-win {
+    color: #3f6b34;
+}
+
+.profit-loss {
+    color: #8a3a2c;
+}
+
+.profit-pending {
+    font-weight: normal;
+    font-style: italic;
+    opacity: 0.6;
+}
+
 .bet-actions {
     display: flex;
     gap: 6px;

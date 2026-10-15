@@ -20,13 +20,19 @@ function loadBets() {
             return [];
         }
 
-        // Keep only entries with usable numbers, so one bad entry
-        // can't crash renderBets() later (toFixed needs real numbers)
-        return parsed.filter(function (bet) {
-            return bet
-                && typeof bet.odds === "number"
-                && typeof bet.stake === "number";
-        });
+        return parsed
+            // Keep only entries with usable numbers, so one bad entry
+            // can't crash renderBets() later (toFixed needs real numbers)
+            .filter(function (bet) {
+                return bet
+                    && typeof bet.odds === "number"
+                    && typeof bet.stake === "number";
+            })
+            // Bets saved before Step 8 have no result: give them "pending".
+            // Defaults go first so a saved result overrides them.
+            .map(function (bet) {
+                return { result: "pending", ...bet };
+            });
     } catch (error) {
         console.error("Could not load bets:", error);
         return [];
@@ -63,6 +69,43 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// ---------- Calculations ----------
+
+// Profit or loss of one bet in euros, or null if it isn't settled yet.
+// Rounded to cents because decimal maths in JavaScript has tiny errors
+// (for example 0.1 + 0.2 is 0.30000000000000004).
+function calcProfit(bet) {
+    let profit;
+
+    if (bet.result === "won") {
+        profit = bet.stake * (bet.odds - 1);
+    } else if (bet.result === "lost") {
+        profit = -bet.stake;
+    } else if (bet.result === "void") {
+        profit = 0;
+    } else {
+        return null; // pending
+    }
+
+    return Math.round(profit * 100) / 100;
+}
+
+// Turns a profit number into text and a CSS class for display
+function describeProfit(profit) {
+    if (profit === null) {
+        return { text: "Pending", className: "profit-pending" };
+    }
+    if (profit > 0) {
+        return { text: "+€" + profit.toFixed(2), className: "profit-win" };
+    }
+    if (profit < 0) {
+        return { text: "−€" + Math.abs(profit).toFixed(2), className: "profit-loss" };
+    }
+    return { text: "€0.00", className: "profit-pending" };
+}
+
+// ---------- Edit / delete ----------
+
 // Puts the form back into "add new bet" mode
 function stopEditing() {
     editingId = null;
@@ -91,6 +134,7 @@ function startEdit(id) {
     document.getElementById("bookmaker").value = bet.bookmaker;
     document.getElementById("odds").value = bet.odds;
     document.getElementById("stake").value = bet.stake;
+    document.getElementById("result").value = bet.result;
 
     submitBtn.textContent = "Save Changes";
     cancelEditBtn.hidden = false;
@@ -114,6 +158,8 @@ function deleteBet(id) {
     renderBets();
 }
 
+// ---------- Rendering ----------
+
 function renderBets() {
     betList.innerHTML = "";
 
@@ -123,6 +169,8 @@ function renderBets() {
     newestFirst.forEach(function (bet) {
         const betEntry = document.createElement("div");
         betEntry.classList.add("bet-entry");
+
+        const profit = describeProfit(calcProfit(bet));
 
         betEntry.innerHTML = `
         <div class="bet-main">
@@ -136,6 +184,7 @@ function renderBets() {
     <div class="bet-numbers">
         <span class="bet-odds">@ ${bet.odds.toFixed(2)}</span>
         <span class="bet-stake">€${bet.stake.toFixed(2)}</span>
+        <span class="bet-profit ${profit.className}">${profit.text}</span>
         <div class="bet-actions">
             <button type="button" class="edit-btn" data-id="${bet.id}">Edit</button>
             <button type="button" class="delete-btn" data-id="${bet.id}">Delete</button>
@@ -186,7 +235,8 @@ betForm.addEventListener("submit", function (event) {
         market: document.getElementById("market").value.trim(),
         bookmaker: document.getElementById("bookmaker").value.trim(),
         odds: Number(document.getElementById("odds").value),
-        stake: Number(document.getElementById("stake").value)
+        stake: Number(document.getElementById("stake").value),
+        result: document.getElementById("result").value
     };
 
     if (editingId === null) {
