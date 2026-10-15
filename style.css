@@ -422,6 +422,130 @@ button:hover {
 #betForm .cancel-btn:hover {
     background: rgba(112, 73, 35, 0.1);
 }
+
+/* ---------- Accumulator legs ---------- */
+
+/* .form-field uses display: flex, which would beat the hidden attribute,
+   so this line makes sure hidden always wins */
+.form-field[hidden] {
+    display: none;
+}
+
+.legs {
+    grid-column: 1 / -1;   /* span the full width of the form grid */
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.legs[hidden] {
+    display: none;
+}
+
+.legs-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #66543e;
+}
+
+#legsList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.leg-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 90px 36px;
+    gap: 8px;
+    align-items: center;
+}
+
+.leg-row input {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+
+    border: 1px solid rgba(60, 40, 20, 0.3);
+    border-radius: 7px;
+
+    background: #faf1da;
+    color: #30271e;
+
+    font: inherit;
+    outline: none;
+}
+
+.leg-row input:focus {
+    border-color: #a36d35;
+    box-shadow: 0 0 0 3px rgba(163, 109, 53, 0.12);
+}
+
+/* The first two legs can't be removed (minimum 2), so their button
+   is invisible but keeps its space so the columns stay aligned.
+   The #betForm prefix is needed to beat the general "#betForm button" rule. */
+.leg-row:nth-child(-n+2) .remove-leg-btn {
+    visibility: hidden;
+}
+
+#betForm .remove-leg-btn {
+    width: 36px;
+    min-height: 44px;
+    padding: 0;
+
+    background: transparent;
+    color: #8a3a2c;
+    border: 1px solid rgba(138, 58, 44, 0.45);
+    font-size: 14px;
+}
+
+#betForm .remove-leg-btn:hover {
+    background: #8a3a2c;
+    color: #fffaf0;
+}
+
+#betForm .add-leg-btn {
+    align-self: flex-start;
+    width: auto;
+    min-height: 40px;
+    padding: 8px 14px;
+
+    background: transparent;
+    color: #704923;
+    border: 1px solid rgba(112, 73, 35, 0.45);
+    font-size: 13px;
+}
+
+#betForm .add-leg-btn:hover {
+    background: rgba(112, 73, 35, 0.1);
+}
+
+/* Odds field is calculated for accumulators */
+.form-field input[readonly] {
+    background: #eadfc3;
+    cursor: default;
+}
+
+/* Legs shown inside a ledger entry */
+.bet-legs {
+    margin: 6px 0 0;
+    padding-left: 16px;
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.bet-legs li {
+    margin-top: 2px;
+}
+
 /* ---------- Mobile ---------- */
 
 @media (max-width: 560px) {
@@ -448,6 +572,13 @@ button:hover {
     }
     .stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .leg-row {
+        grid-template-columns: 1fr 80px 36px;
+    }
+
+    .leg-row .leg-event {
+        grid-column: 1 / -1;   /* event on its own line, market + odds below */
     }
 }
 

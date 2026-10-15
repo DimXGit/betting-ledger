@@ -4,6 +4,17 @@ const emptyMessage = document.getElementById("emptyMessage");
 const submitBtn = document.getElementById("submitBtn");
 const cancelEditBtn = document.getElementById("cancelEditBtn");
 
+// Form fields that change depending on the bet type
+const betTypeSelect = document.getElementById("betType");
+const eventField = document.getElementById("eventField");
+const marketField = document.getElementById("marketField");
+const eventInput = document.getElementById("event");
+const marketInput = document.getElementById("market");
+const oddsInput = document.getElementById("odds");
+const legsSection = document.getElementById("legsSection");
+const legsList = document.getElementById("legsList");
+const addLegBtn = document.getElementById("addLegBtn");
+
 const statProfit = document.getElementById("statProfit");
 const statRoi = document.getElementById("statRoi");
 const statWinRate = document.getElementById("statWinRate");
@@ -43,10 +54,20 @@ function loadBets() {
                     && typeof bet.odds === "number"
                     && typeof bet.stake === "number";
             })
-            // Bets saved before Step 8 have no result: give them "pending".
-            // Defaults go first so a saved result overrides them.
+            // Fill in fields that older saves don't have yet.
+            // Defaults go first so saved values override them.
             .map(function (bet) {
-                return { result: "pending", ...bet };
+                return {
+                    result: "pending",
+                    ...bet,
+                    // Bets saved before accumulator legs existed get an empty list.
+                    // Damaged legs are dropped so toFixed() can't crash.
+                    legs: Array.isArray(bet.legs)
+                        ? bet.legs.filter(function (leg) {
+                            return leg && typeof leg.odds === "number";
+                        })
+                        : []
+                };
             });
     } catch (error) {
         console.error("Could not load bets:", error);
@@ -103,6 +124,15 @@ function calcProfit(bet) {
     }
 
     return Math.round(profit * 100) / 100;
+}
+
+// Combined odds of an accumulator: all leg odds multiplied together,
+// rounded to 2 decimals like bookmakers show them
+function calcCombinedOdds(legs) {
+    const product = legs.reduce(function (total, leg) {
+        return total * leg.odds;
+    }, 1);
+    return Math.round(product * 100) / 100;
 }
 
 // Turns a profit number into text and a CSS class for display
@@ -189,6 +219,80 @@ function renderStats(list) {
         ? ""
         : stats.won + " won · " + stats.lost + " lost · "
             + stats.voided + " void · " + stats.pending + " pending";
+}
+
+// ---------- Accumulator legs (form) ----------
+
+// Adds one row (event, market, odds, remove button) to the legs list.
+// Values are set with .value instead of being written into the HTML text,
+// so quotes or < > typed by the user can never break the markup.
+function addLegRow(leg) {
+    leg = leg || {};
+
+    const row = document.createElement("div");
+    row.classList.add("leg-row");
+    row.innerHTML = `
+        <input type="text" class="leg-event" placeholder="Arsenal vs Chelsea" aria-label="Leg event" required>
+        <input type="text" class="leg-market" placeholder="Over 2.5" aria-label="Leg market" required>
+        <input type="number" class="leg-odds" min="1.01" step="0.01" placeholder="1.80" aria-label="Leg odds" required>
+        <button type="button" class="remove-leg-btn" aria-label="Remove leg">✕</button>
+    `;
+
+    row.querySelector(".leg-event").value = leg.event || "";
+    row.querySelector(".leg-market").value = leg.market || "";
+    row.querySelector(".leg-odds").value = leg.odds || "";
+
+    legsList.appendChild(row);
+}
+
+// Reads all leg rows from the form into an array of plain objects
+function readLegs() {
+    const rows = legsList.querySelectorAll(".leg-row");
+
+    return [...rows].map(function (row) {
+        return {
+            event: row.querySelector(".leg-event").value.trim(),
+            market: row.querySelector(".leg-market").value.trim(),
+            odds: Number(row.querySelector(".leg-odds").value)
+        };
+    });
+}
+
+// Recalculates the (read-only) Odds field from the legs.
+// Stays empty until every leg has valid odds.
+function updateCombinedOdds() {
+    const legs = readLegs();
+    const allValid = legs.length > 0 && legs.every(function (leg) {
+        return leg.odds >= 1.01;
+    });
+
+    oddsInput.value = allValid ? calcCombinedOdds(legs).toFixed(2) : "";
+}
+
+// Shows or hides the right form fields for the selected bet type
+function updateBetTypeUI() {
+    const isAccumulator = betTypeSelect.value === "accumulator";
+
+    // A disabled <fieldset> is skipped by form validation, so hidden
+    // required inputs can never block the submit
+    legsSection.hidden = !isAccumulator;
+    legsSection.disabled = !isAccumulator;
+
+    eventField.hidden = isAccumulator;
+    marketField.hidden = isAccumulator;
+    eventInput.disabled = isAccumulator;
+    marketInput.disabled = isAccumulator;
+
+    // For accumulators the odds are calculated, so the user can't type them
+    oddsInput.readOnly = isAccumulator;
+
+    if (isAccumulator) {
+        // An accumulator needs at least 2 legs, so start with 2 empty rows
+        while (legsList.children.length < 2) {
+            addLegRow();
+        }
+        updateCombinedOdds();
+    }
 }
 
 // ---------- Filtering ----------
@@ -291,6 +395,8 @@ function clearFilters() {
 function stopEditing() {
     editingId = null;
     betForm.reset();
+    legsList.innerHTML = "";   // reset() doesn't know about our dynamic rows
+    updateBetTypeUI();         // reset() also doesn't fire "change", so refresh by hand
     setTodayDate();
     submitBtn.textContent = "+ Write Entry";
     cancelEditBtn.hidden = true;
@@ -307,15 +413,30 @@ function startEdit(id) {
 
     editingId = id;
 
-    document.getElementById("betType").value = bet.betType;
+    betTypeSelect.value = bet.betType;
     document.getElementById("date").value = bet.date;
     document.getElementById("sport").value = bet.sport;
-    document.getElementById("event").value = bet.event;
-    document.getElementById("market").value = bet.market;
+    eventInput.value = bet.event;
+    marketInput.value = bet.market;
     document.getElementById("bookmaker").value = bet.bookmaker;
-    document.getElementById("odds").value = bet.odds;
+    oddsInput.value = bet.odds;
     document.getElementById("stake").value = bet.stake;
     document.getElementById("result").value = bet.result;
+
+    // Rebuild the leg rows for this bet
+    legsList.innerHTML = "";
+    if (bet.betType === "accumulator") {
+        // Accumulators saved before legs existed have no legs: use the old
+        // event/market/odds as leg 1 (updateBetTypeUI adds an empty leg 2)
+        const legsToEdit = bet.legs.length > 0
+            ? bet.legs
+            : [{ event: bet.event, market: bet.market, odds: bet.odds }];
+
+        legsToEdit.forEach(function (leg) {
+            addLegRow(leg);
+        });
+    }
+    updateBetTypeUI();
 
     submitBtn.textContent = "Save Changes";
     cancelEditBtn.hidden = false;
@@ -360,14 +481,33 @@ function renderBets() {
 
         const profit = describeProfit(calcProfit(bet));
 
+        // Line under the title: sport · market (if any) · type · bookmaker (if any)
+        const metaParts = [bet.sport];
+        if (bet.market) {
+            metaParts.push(bet.market);
+        }
+        metaParts.push(bet.betType === "accumulator" ? "Accumulator" : "Single");
+        if (bet.bookmaker) {
+            metaParts.push(bet.bookmaker);
+        }
+        const metaText = metaParts.map(function (part) {
+            return escapeHtml(part);
+        }).join(" · ");
+
+        // One list item per leg (empty string for singles and old accumulators)
+        const legsHtml = bet.legs.length > 0
+            ? '<ul class="bet-legs">' + bet.legs.map(function (leg) {
+                return "<li>" + escapeHtml(leg.event) + " · " + escapeHtml(leg.market)
+                    + " @ " + leg.odds.toFixed(2) + "</li>";
+            }).join("") + "</ul>"
+            : "";
+
         betEntry.innerHTML = `
         <div class="bet-main">
         <span class="bet-date">${escapeHtml(bet.date)}</span>
         <strong class="bet-event">${escapeHtml(bet.event)}</strong>
-        <span class="bet-meta">
-            ${escapeHtml(bet.sport)} · ${escapeHtml(bet.market)} ·
-            ${bet.betType === "accumulator" ? "Accumulator" : "Single"}${bet.bookmaker ? " · " + escapeHtml(bet.bookmaker) : ""}
-        </span>
+        <span class="bet-meta">${metaText}</span>
+        ${legsHtml}
     </div>
     <div class="bet-numbers">
         <span class="bet-odds">@ ${bet.odds.toFixed(2)}</span>
@@ -403,6 +543,8 @@ function renderBets() {
     renderStats(visible);
 }
 
+// ---------- Event listeners ----------
+
 // One listener on the list handles every Edit and Delete button (event delegation)
 betList.addEventListener("click", function (event) {
     const editButton = event.target.closest(".edit-btn");
@@ -434,19 +576,68 @@ cancelEditBtn.addEventListener("click", stopEditing);
 filtersEl.addEventListener("change", renderBets);
 clearFiltersBtn.addEventListener("click", clearFilters);
 
+// Bet type switched: show the legs section or the single-bet fields
+betTypeSelect.addEventListener("change", updateBetTypeUI);
+
+addLegBtn.addEventListener("click", function () {
+    addLegRow();
+});
+
+// Typing in any leg's odds recalculates the combined odds (event delegation again,
+// because the leg rows are created and removed dynamically)
+legsList.addEventListener("input", updateCombinedOdds);
+
+legsList.addEventListener("click", function (event) {
+    const removeButton = event.target.closest(".remove-leg-btn");
+    if (!removeButton) {
+        return;
+    }
+
+    // An accumulator needs at least 2 legs
+    if (legsList.children.length > 2) {
+        removeButton.closest(".leg-row").remove();
+        updateCombinedOdds();
+    }
+});
+
 betForm.addEventListener("submit", function (event) {
     event.preventDefault();
 
+    const betType = betTypeSelect.value;
+    let legs;
+    let eventName;
+    let market;
+    let odds;
+
+    if (betType === "accumulator") {
+        legs = readLegs();
+
+        if (legs.length < 2) {
+            alert("An accumulator needs at least 2 legs.");
+            return;
+        }
+
+        odds = calcCombinedOdds(legs);
+        eventName = legs[0].event + " + " + (legs.length - 1) + " more";
+        market = "";
+    } else {
+        legs = [];
+        eventName = eventInput.value.trim();
+        market = marketInput.value.trim();
+        odds = Number(oddsInput.value);
+    }
+
     const formData = {
-        betType: document.getElementById("betType").value,
+        betType: betType,
         date: document.getElementById("date").value,
         sport: document.getElementById("sport").value.trim(),
-        event: document.getElementById("event").value.trim(),
-        market: document.getElementById("market").value.trim(),
+        event: eventName,
+        market: market,
         bookmaker: document.getElementById("bookmaker").value.trim(),
-        odds: Number(document.getElementById("odds").value),
+        odds: odds,
         stake: Number(document.getElementById("stake").value),
-        result: document.getElementById("result").value
+        result: document.getElementById("result").value,
+        legs: legs
     };
 
     if (editingId === null) {
@@ -464,4 +655,5 @@ betForm.addEventListener("submit", function (event) {
     stopEditing(); // also resets the form and the date, for both modes
 });
 
+updateBetTypeUI();
 renderBets();
