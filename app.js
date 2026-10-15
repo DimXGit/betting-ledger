@@ -4,6 +4,12 @@ const emptyMessage = document.getElementById("emptyMessage");
 const submitBtn = document.getElementById("submitBtn");
 const cancelEditBtn = document.getElementById("cancelEditBtn");
 
+const statProfit = document.getElementById("statProfit");
+const statRoi = document.getElementById("statRoi");
+const statWinRate = document.getElementById("statWinRate");
+const statStaked = document.getElementById("statStaked");
+const statRecord = document.getElementById("statRecord");
+
 const STORAGE_KEY = "teft.bets";
 
 // Reads saved bets from localStorage. Always returns an array,
@@ -104,6 +110,78 @@ function describeProfit(profit) {
     return { text: "€0.00", className: "profit-pending" };
 }
 
+// Totals for a list of bets. Pure function: reads the list, changes nothing.
+// winRate and roi are null when there is nothing to divide by.
+function calcStats(allBets) {
+    let won = 0;
+    let lost = 0;
+    let voided = 0;
+    let pending = 0;
+    let staked = 0;   // only won + lost bets (void and pending were never "at risk")
+    let profit = 0;
+
+    allBets.forEach(function (bet) {
+        if (bet.result === "won") {
+            won++;
+            staked += bet.stake;
+        } else if (bet.result === "lost") {
+            lost++;
+            staked += bet.stake;
+        } else if (bet.result === "void") {
+            voided++;
+        } else {
+            pending++;
+        }
+
+        const betProfit = calcProfit(bet);
+        if (betProfit !== null) {
+            profit += betProfit;
+        }
+    });
+
+    // Round the totals once at the end to clean up floating-point noise
+    profit = Math.round(profit * 100) / 100;
+    staked = Math.round(staked * 100) / 100;
+
+    const decided = won + lost;
+
+    return {
+        won: won,
+        lost: lost,
+        voided: voided,
+        pending: pending,
+        staked: staked,
+        profit: profit,
+        winRate: decided > 0 ? (won / decided) * 100 : null,
+        roi: staked > 0 ? (profit / staked) * 100 : null
+    };
+}
+
+// Writes the totals into the dashboard.
+// textContent is used (not innerHTML) because these are plain text values.
+function renderStats() {
+    const stats = calcStats(bets);
+
+    statProfit.textContent = describeProfit(stats.profit).text;
+    statProfit.className = "stat-value"
+        + (stats.profit > 0 ? " profit-win" : stats.profit < 0 ? " profit-loss" : "");
+
+    statRoi.textContent = stats.roi === null
+        ? "–"
+        : (stats.roi > 0 ? "+" : stats.roi < 0 ? "−" : "") + Math.abs(stats.roi).toFixed(1) + "%";
+
+    statWinRate.textContent = stats.winRate === null
+        ? "–"
+        : stats.winRate.toFixed(1) + "%";
+
+    statStaked.textContent = "€" + stats.staked.toFixed(2);
+
+    statRecord.textContent = bets.length === 0
+        ? ""
+        : stats.won + " won · " + stats.lost + " lost · "
+            + stats.voided + " void · " + stats.pending + " pending";
+}
+
 // ---------- Edit / delete ----------
 
 // Puts the form back into "add new bet" mode
@@ -196,6 +274,10 @@ function renderBets() {
     });
 
     emptyMessage.style.display = bets.length === 0 ? "block" : "none";
+
+    // Every change to the list goes through renderBets, so the stats
+    // are refreshed here and can never get out of sync with the list
+    renderStats();
 }
 
 // One listener on the list handles every Edit and Delete button (event delegation)

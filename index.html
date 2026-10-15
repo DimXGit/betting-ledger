@@ -24,6 +24,26 @@
 
             <h2>My Ledger</h2>
 
+            <section class="stats" id="stats">
+                <div class="stat">
+                    <span class="stat-label">Profit</span>
+                    <span class="stat-value" id="statProfit">€0.00</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">ROI</span>
+                    <span class="stat-value" id="statRoi">–</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Win Rate</span>
+                    <span class="stat-value" id="statWinRate">–</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Staked</span>
+                    <span class="stat-value" id="statStaked">€0.00</span>
+                </div>
+            </section>
+            <p class="stats-record" id="statRecord"></p>
+
 
 
             <form id="betForm">
@@ -73,7 +93,7 @@
                         <label for="stake">Stake (€)</label>
                         <input type="number" id="stake" min="0.01" step="0.01" placeholder="10.00" required>
                     </div>
-                    
+
                     <div class="form-field">
                         <label for="result">Result</label>
                         <select id="result" required>
