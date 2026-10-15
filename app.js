@@ -1,6 +1,8 @@
 const betForm = document.getElementById("betForm");
 const betList = document.getElementById("betList");
 const emptyMessage = document.getElementById("emptyMessage");
+const submitBtn = document.getElementById("submitBtn");
+const cancelEditBtn = document.getElementById("cancelEditBtn");
 
 const STORAGE_KEY = "teft.bets";
 
@@ -43,6 +45,9 @@ function saveBets() {
 // let (not const) because deleteBet replaces the array with a filtered one
 let bets = loadBets();
 
+// null = adding a new bet; a number = the id of the bet being edited
+let editingId = null;
+
 function setTodayDate() {
     const today = new Date();
     today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
@@ -58,11 +63,53 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Puts the form back into "add new bet" mode
+function stopEditing() {
+    editingId = null;
+    betForm.reset();
+    setTodayDate();
+    submitBtn.textContent = "+ Write Entry";
+    cancelEditBtn.hidden = true;
+}
+
+// Fills the form with an existing bet and switches to "edit" mode
+function startEdit(id) {
+    const bet = bets.find(function (b) {
+        return b.id === id;
+    });
+    if (!bet) {
+        return;
+    }
+
+    editingId = id;
+
+    document.getElementById("betType").value = bet.betType;
+    document.getElementById("date").value = bet.date;
+    document.getElementById("sport").value = bet.sport;
+    document.getElementById("event").value = bet.event;
+    document.getElementById("market").value = bet.market;
+    document.getElementById("bookmaker").value = bet.bookmaker;
+    document.getElementById("odds").value = bet.odds;
+    document.getElementById("stake").value = bet.stake;
+
+    submitBtn.textContent = "Save Changes";
+    cancelEditBtn.hidden = false;
+
+    // On mobile the form may be off-screen, so bring it into view
+    betForm.scrollIntoView({ behavior: "smooth" });
+}
+
 // Removes the bet with the given id, then saves and redraws
 function deleteBet(id) {
     bets = bets.filter(function (bet) {
         return bet.id !== id;
     });
+
+    // If we just deleted the bet being edited, leave edit mode
+    if (editingId === id) {
+        stopEditing();
+    }
+
     saveBets();
     renderBets();
 }
@@ -89,7 +136,10 @@ function renderBets() {
     <div class="bet-numbers">
         <span class="bet-odds">@ ${bet.odds.toFixed(2)}</span>
         <span class="bet-stake">€${bet.stake.toFixed(2)}</span>
-        <button type="button" class="delete-btn" data-id="${bet.id}">Delete</button>
+        <div class="bet-actions">
+            <button type="button" class="edit-btn" data-id="${bet.id}">Edit</button>
+            <button type="button" class="delete-btn" data-id="${bet.id}">Delete</button>
+        </div>
     </div>
         `;
 
@@ -99,31 +149,36 @@ function renderBets() {
     emptyMessage.style.display = bets.length === 0 ? "block" : "none";
 }
 
-// One listener on the list handles every Delete button (event delegation)
+// One listener on the list handles every Edit and Delete button (event delegation)
 betList.addEventListener("click", function (event) {
-    const button = event.target.closest(".delete-btn");
-    if (!button) {
-        return; // click was somewhere else in the list
-    }
-
-    const id = Number(button.dataset.id);
-    const bet = bets.find(function (b) {
-        return b.id === id;
-    });
-    if (!bet) {
+    const editButton = event.target.closest(".edit-btn");
+    if (editButton) {
+        startEdit(Number(editButton.dataset.id));
         return;
     }
 
-    if (confirm('Delete "' + bet.event + '"?')) {
-        deleteBet(id);
+    const deleteButton = event.target.closest(".delete-btn");
+    if (deleteButton) {
+        const id = Number(deleteButton.dataset.id);
+        const bet = bets.find(function (b) {
+            return b.id === id;
+        });
+        if (!bet) {
+            return;
+        }
+
+        if (confirm('Delete "' + bet.event + '"?')) {
+            deleteBet(id);
+        }
     }
 });
+
+cancelEditBtn.addEventListener("click", stopEditing);
 
 betForm.addEventListener("submit", function (event) {
     event.preventDefault();
 
-    const bet = {
-        id: Date.now(),                                   // unique enough for a personal app
+    const formData = {
         betType: document.getElementById("betType").value,
         date: document.getElementById("date").value,
         sport: document.getElementById("sport").value.trim(),
@@ -134,12 +189,19 @@ betForm.addEventListener("submit", function (event) {
         stake: Number(document.getElementById("stake").value)
     };
 
-    bets.push(bet);
+    if (editingId === null) {
+        // Add mode: new bet with a new id
+        bets.push({ id: Date.now(), ...formData });
+    } else {
+        // Edit mode: replace the matching bet, keeping its id (and its position)
+        bets = bets.map(function (bet) {
+            return bet.id === editingId ? { id: bet.id, ...formData } : bet;
+        });
+    }
+
     saveBets();
     renderBets();
-
-    betForm.reset();
-    setTodayDate();
+    stopEditing(); // also resets the form and the date, for both modes
 });
 
 renderBets();

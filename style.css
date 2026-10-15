@@ -251,16 +251,34 @@ button:hover {
     font-weight: bold;
 }
 
-.delete-btn {
+.bet-actions {
+    display: flex;
+    gap: 6px;
     margin-top: 4px;
-    padding: 4px 10px;
+}
 
+.edit-btn,
+.delete-btn {
+    padding: 4px 10px;
     background: transparent;
+    border-radius: 5px;
+    font-size: 12px;
+}
+
+.edit-btn {
+    color: #704923;
+    border: 1px solid rgba(112, 73, 35, 0.45);
+}
+
+.edit-btn:hover {
+    background: #704923;
+    color: #fffaf0;
+    opacity: 1;
+}
+
+.delete-btn {
     color: #8a3a2c;
     border: 1px solid rgba(138, 58, 44, 0.45);
-    border-radius: 5px;
-
-    font-size: 12px;
 }
 
 .delete-btn:hover {
@@ -269,6 +287,17 @@ button:hover {
     opacity: 1;
 }
 
+/* Secondary button under the form while editing */
+#betForm .cancel-btn {
+    margin-top: 10px;
+    background: transparent;
+    color: #704923;
+    border: 1px solid rgba(112, 73, 35, 0.45);
+}
+
+#betForm .cancel-btn:hover {
+    background: rgba(112, 73, 35, 0.1);
+}
 /* ---------- Mobile ---------- */
 
 @media (max-width: 560px) {
