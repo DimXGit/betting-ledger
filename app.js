@@ -541,6 +541,9 @@ function renderBets() {
     // Every change to the list goes through renderBets, so the stats
     // are refreshed here and can never get out of sync with the list
     renderStats(visible);
+
+    // Bookmaker balances depend on the bets, so refresh them too
+    renderBankroll();
 }
 
 // ---------- Bankroll (κάβα) ----------
