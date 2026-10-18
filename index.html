@@ -186,10 +186,23 @@
                 </section>
                 <p class="stats-record" id="statRecord"></p>
 
-                <div class="filters" id="filters" hidden>
-                    <h3>Filter History</h3>
+                 <div class="calendar" id="calendar">
+                    <div class="cal-header">
+                        <button type="button" class="cal-nav" id="calPrev" aria-label="Previous month">‹</button>
+                        <span class="cal-title" id="calTitle"></span>
+                        <button type="button" class="cal-nav" id="calNext" aria-label="Next month">›</button>
+                    </div>
 
-                    <div class="filter-grid">
+                    <div class="cal-grid" id="calGrid"></div>
+
+                    <div class="cal-footer">
+                        <span class="cal-summary" id="calSummary"></span>
+                        <button type="button" id="clearDayBtn" class="clear-btn" hidden>Show all days</button>
+                    </div>
+                </div>
+
+                <div class="filters" id="filters" hidden>
+                    <div class="filter-row">
                         <div class="form-field">
                             <label for="filterResult">Result</label>
                             <select id="filterResult">
@@ -224,12 +237,11 @@
                             <label for="filterTo">To</label>
                             <input type="date" id="filterTo">
                         </div>
+
+                        <button type="button" id="clearFiltersBtn" class="clear-btn">Clear</button>
                     </div>
 
-                    <div class="filter-footer">
-                        <span class="filter-count" id="filterCount"></span>
-                        <button type="button" id="clearFiltersBtn" class="clear-btn">Clear Filters</button>
-                    </div>
+                    <div class="filter-count" id="filterCount"></div>
                 </div>
 
                 <h3 class="section-title">History</h3>

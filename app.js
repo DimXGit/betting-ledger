@@ -100,6 +100,12 @@ let bets = loadBets();
 // null = adding a new bet; a number = the id of the bet being edited
 let editingId = null;
 
+// The day picked in the calendar ("YYYY-MM-DD"), or null for all days
+let selectedDay = null;
+
+// The month the calendar is showing ("YYYY-MM"); starts on the current month
+let calendarMonth = getTodayString().slice(0, 7);
+
 function setTodayDate() {
     const today = new Date();
     today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
@@ -107,6 +113,13 @@ function setTodayDate() {
 }
 
 setTodayDate();
+
+// Today as "YYYY-MM-DD" in local time (toISOString alone would use UTC)
+function getTodayString() {
+    const today = new Date();
+    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+    return today.toISOString().slice(0, 10);
+}
 
 // Turns special characters into harmless text so user input can't become HTML
 function escapeHtml(text) {
@@ -384,6 +397,9 @@ function getFilteredBets() {
     const to = filterTo.value;
 
     return bets.filter(function (bet) {
+        if (selectedDay !== null && bet.date !== selectedDay) {
+            return false;
+        }
         if (result !== "all" && bet.result !== result) {
             return false;
         }
@@ -411,6 +427,7 @@ function clearFilters() {
     filterBookmaker.value = "all";
     filterFrom.value = "";
     filterTo.value = "";
+    selectedDay = null;
     renderBets();
 }
 
@@ -580,9 +597,162 @@ function renderBets() {
     // are refreshed here and can never get out of sync with the list
     renderStats(visible);
 
+     // The calendar colours days by profit, so it follows the bets too
+    renderCalendar();
+
     // Bookmaker balances depend on the bets, so refresh them too
     renderBankroll();
 }
+
+// ---------- Calendar ----------
+
+const calPrev = document.getElementById("calPrev");
+const calNext = document.getElementById("calNext");
+const calTitle = document.getElementById("calTitle");
+const calGrid = document.getElementById("calGrid");
+const calSummary = document.getElementById("calSummary");
+const clearDayBtn = document.getElementById("clearDayBtn");
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+// Moves the calendar by whole months (-1 = previous, +1 = next).
+// new Date() handles the year change for us (month 12 + 1 = January).
+function shiftMonth(delta) {
+    const parts = calendarMonth.split("-");
+    const date = new Date(Number(parts[0]), Number(parts[1]) - 1 + delta, 1);
+    calendarMonth = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+    renderCalendar();
+}
+
+// Draws the month grid. Every day is tinted by that day's profit.
+// The calendar always looks at ALL bets (not the filtered ones), so it
+// stays a stable overview while you filter the history below it.
+function renderCalendar() {
+    const parts = calendarMonth.split("-");
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);   // 1-12
+
+    calTitle.textContent = new Date(year, month - 1, 1)
+        .toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
+    // Group the bets by date once, so each day cell is a quick lookup
+    const byDate = {};
+    bets.forEach(function (bet) {
+        if (!byDate[bet.date]) {
+            byDate[bet.date] = [];
+        }
+        byDate[bet.date].push(bet);
+    });
+
+    const daysInMonth = new Date(year, month, 0).getDate();   // day 0 of next month = last day of this one
+    const startOffset = (new Date(year, month - 1, 1).getDay() + 6) % 7;   // week starts on Monday
+    const today = getTodayString();
+
+    calGrid.innerHTML = "";
+
+    WEEKDAYS.forEach(function (name) {
+        const label = document.createElement("span");
+        label.classList.add("cal-dow");
+        label.textContent = name;
+        calGrid.appendChild(label);
+    });
+
+    // Empty cells so day 1 lands under the right weekday
+    for (let i = 0; i < startOffset; i++) {
+        calGrid.appendChild(document.createElement("span"));
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = calendarMonth + "-" + String(day).padStart(2, "0");
+        const dayBets = byDate[dateStr] || [];
+        const stats = calcStats(dayBets);
+        const settled = stats.won + stats.lost + stats.voided;
+
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.classList.add("cal-day");
+        cell.dataset.date = dateStr;
+
+        let amount = "";
+        if (dayBets.length > 0) {
+            cell.title = dayBets.length + (dayBets.length === 1 ? " bet" : " bets");
+
+            if (settled === 0) {
+                cell.classList.add("cal-pending");
+                amount = "…";
+            } else {
+                cell.classList.add(
+                    stats.profit > 0 ? "cal-win" : stats.profit < 0 ? "cal-loss" : "cal-flat"
+                );
+                // Number(...) drops useless zeros: 12.50 shows as 12.5
+                amount = (stats.profit > 0 ? "+" : stats.profit < 0 ? "−" : "")
+                    + Number(Math.abs(stats.profit).toFixed(2));
+            }
+        }
+
+        if (dateStr === today) {
+            cell.classList.add("cal-today");
+        }
+        if (dateStr === selectedDay) {
+            cell.classList.add("cal-selected");
+        }
+
+        // day and amount are numbers we built ourselves, so no escaping is needed
+        cell.innerHTML = '<span class="cal-num">' + day + '</span>'
+            + '<span class="cal-amount">' + amount + '</span>';
+
+        calGrid.appendChild(cell);
+    }
+
+    // Summary line: the selected day, or the whole month
+    let summaryBets;
+    let summaryLabel;
+
+    if (selectedDay !== null) {
+        summaryBets = byDate[selectedDay] || [];
+        summaryLabel = new Date(selectedDay + "T00:00:00").toLocaleDateString("en-GB", {
+            weekday: "long", day: "numeric", month: "long", year: "numeric"
+        });
+    } else {
+        summaryBets = bets.filter(function (bet) {
+            return String(bet.date || "").startsWith(calendarMonth + "-");
+        });
+        summaryLabel = calTitle.textContent;
+    }
+
+    const summaryStats = calcStats(summaryBets);
+    const summarySettled = summaryStats.won + summaryStats.lost + summaryStats.voided;
+
+    calSummary.textContent = summaryLabel + " · "
+        + summaryBets.length + (summaryBets.length === 1 ? " bet" : " bets") + " · "
+        + (summarySettled === 0 ? "nothing settled" : describeProfit(summaryStats.profit).text);
+
+    clearDayBtn.hidden = selectedDay === null;
+}
+
+calGrid.addEventListener("click", function (event) {
+    const cell = event.target.closest(".cal-day");
+    if (!cell) {
+        return;
+    }
+
+    // Clicking the selected day again deselects it
+    selectedDay = selectedDay === cell.dataset.date ? null : cell.dataset.date;
+    renderBets();
+});
+
+calPrev.addEventListener("click", function () {
+    shiftMonth(-1);
+});
+
+calNext.addEventListener("click", function () {
+    shiftMonth(1);
+});
+
+clearDayBtn.addEventListener("click", function () {
+    selectedDay = null;
+    renderBets();
+});
 
 // ---------- Bankroll (κάβα) ----------
 
