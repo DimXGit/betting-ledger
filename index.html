@@ -43,6 +43,24 @@
             </section>
             <p class="stats-record" id="statRecord"></p>
 
+              <details class="bankroll" id="bankroll">
+                <summary>
+                    <span class="bankroll-title">Bankroll</span>
+                    <span class="bankroll-total" id="bankrollTotal">€0.00</span>
+                </summary>
+
+                <div class="bankroll-body">
+                    <p class="bankroll-empty" id="bankrollEmpty">No bookmakers yet.</p>
+                    <div id="bankrollList"></div>
+
+                    <form id="bankrollForm" class="bankroll-form">
+                        <input type="text" id="bankrollName" placeholder="Stoiximan" aria-label="Bookmaker" required>
+                        <input type="number" id="bankrollAmount" min="0" step="0.01" placeholder="50.00" aria-label="Amount (€)" required>
+                        <button type="submit">Set</button>
+                    </form>
+                </div>
+            </details>
+
             <form id="betForm">
                 <h3>New Entry</h3>
 

@@ -543,6 +543,139 @@ function renderBets() {
     renderStats(visible);
 }
 
+// ---------- Bankroll (κάβα) ----------
+
+const BANKROLL_KEY = "teft.bankroll";
+
+const bankrollTotal = document.getElementById("bankrollTotal");
+const bankrollList = document.getElementById("bankrollList");
+const bankrollEmpty = document.getElementById("bankrollEmpty");
+const bankrollForm = document.getElementById("bankrollForm");
+const bankrollName = document.getElementById("bankrollName");
+const bankrollAmount = document.getElementById("bankrollAmount");
+
+// Reads the saved bookmaker balances. Always returns an array,
+// and drops damaged entries so toFixed() can't crash later.
+function loadBankroll() {
+    try {
+        const saved = localStorage.getItem(BANKROLL_KEY);
+        if (saved === null) {
+            return [];
+        }
+
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+
+        return parsed.filter(function (account) {
+            return account
+                && typeof account.name === "string"
+                && typeof account.amount === "number"
+                && Number.isFinite(account.amount);
+        });
+    } catch (error) {
+        console.error("Could not load bankroll:", error);
+        return [];
+    }
+}
+
+function saveBankroll() {
+    try {
+        localStorage.setItem(BANKROLL_KEY, JSON.stringify(bankroll));
+    } catch (error) {
+        console.error("Could not save bankroll:", error);
+    }
+}
+
+let bankroll = loadBankroll();
+
+// Draws the total (in the summary) and one row per bookmaker
+function renderBankroll() {
+    const total = bankroll.reduce(function (sum, account) {
+        return sum + account.amount;
+    }, 0);
+    bankrollTotal.textContent = "€" + (Math.round(total * 100) / 100).toFixed(2);
+
+    bankrollList.innerHTML = "";
+
+    bankroll.forEach(function (account) {
+        const row = document.createElement("div");
+        row.classList.add("bankroll-row");
+
+        row.innerHTML = `
+            <span class="bankroll-name">${escapeHtml(account.name)}</span>
+            <span class="bankroll-amount">€${account.amount.toFixed(2)}</span>
+            <div class="bet-actions">
+                <button type="button" class="edit-btn" data-id="${account.id}">Edit</button>
+                <button type="button" class="delete-btn" data-id="${account.id}">Delete</button>
+            </div>
+        `;
+
+        bankrollList.appendChild(row);
+    });
+
+    bankrollEmpty.hidden = bankroll.length !== 0;
+}
+
+// Add a bookmaker, or update its amount if the name already exists
+// ("stoiximan" and "Stoiximan" count as the same one)
+bankrollForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    const name = bankrollName.value.trim();
+    const amount = Math.round(Number(bankrollAmount.value) * 100) / 100;
+    const key = name.toLowerCase();
+
+    const existing = bankroll.find(function (account) {
+        return account.name.toLowerCase() === key;
+    });
+
+    if (existing) {
+        existing.amount = amount;
+    } else {
+        bankroll.push({ id: Date.now(), name: name, amount: amount });
+    }
+
+    saveBankroll();
+    renderBankroll();
+    bankrollForm.reset();
+});
+
+// One listener for every Edit / Delete button in the bankroll list
+bankrollList.addEventListener("click", function (event) {
+    const editButton = event.target.closest(".edit-btn");
+    if (editButton) {
+        const account = bankroll.find(function (a) {
+            return a.id === Number(editButton.dataset.id);
+        });
+        if (account) {
+            // Fill the form; pressing "Set" then updates this bookmaker
+            bankrollName.value = account.name;
+            bankrollAmount.value = account.amount;
+            bankrollAmount.focus();
+        }
+        return;
+    }
+
+    const deleteButton = event.target.closest(".delete-btn");
+    if (deleteButton) {
+        const id = Number(deleteButton.dataset.id);
+        const account = bankroll.find(function (a) {
+            return a.id === id;
+        });
+        if (account && confirm('Remove "' + account.name + '" from the bankroll?')) {
+            bankroll = bankroll.filter(function (a) {
+                return a.id !== id;
+            });
+            saveBankroll();
+            renderBankroll();
+        }
+    }
+});
+
+renderBankroll();
+
 // ---------- Event listeners ----------
 
 // One listener on the list handles every Edit and Delete button (event delegation)

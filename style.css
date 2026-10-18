@@ -546,6 +546,122 @@ button:hover {
     margin-top: 2px;
 }
 
+/* ---------- Bankroll ---------- */
+
+.bankroll {
+    max-width: 760px;
+    margin: 0 auto 24px;
+
+    background: #f3e6c8;
+    border: 1px solid rgba(60, 40, 20, 0.25);
+    border-radius: 12px;
+}
+
+.bankroll summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+
+    cursor: pointer;
+    list-style: none;          /* removes the default arrow (Firefox) */
+}
+
+.bankroll summary::-webkit-details-marker {
+    display: none;             /* removes the default arrow (Chrome / Safari) */
+}
+
+.bankroll summary::after {
+    content: "▾";
+    transition: transform 0.2s;
+}
+
+.bankroll[open] summary::after {
+    transform: rotate(180deg);
+}
+
+.bankroll-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #66543e;
+}
+
+.bankroll-total {
+    margin-left: auto;
+    font-size: 22px;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+.bankroll-body {
+    padding: 4px 20px 20px;
+    border-top: 1px solid rgba(60, 40, 20, 0.2);
+}
+
+.bankroll-empty {
+    text-align: center;
+    font-style: italic;
+    opacity: 0.65;
+}
+
+.bankroll-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(60, 40, 20, 0.2);
+}
+
+.bankroll-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+}
+
+.bankroll-amount {
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+.bankroll-row .bet-actions {
+    margin-top: 0;
+}
+
+.bankroll-form {
+    display: grid;
+    grid-template-columns: 1fr 120px auto;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.bankroll-form input {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+
+    border: 1px solid rgba(60, 40, 20, 0.3);
+    border-radius: 7px;
+
+    background: #faf1da;
+    color: #30271e;
+
+    font: inherit;
+    outline: none;
+}
+
+.bankroll-form input:focus {
+    border-color: #a36d35;
+    box-shadow: 0 0 0 3px rgba(163, 109, 53, 0.12);
+}
+
+.bankroll-form button {
+    min-height: 44px;
+}
+
+
 /* ---------- Mobile ---------- */
 
 @media (max-width: 560px) {
@@ -579,6 +695,17 @@ button:hover {
 
     .leg-row .leg-event {
         grid-column: 1 / -1;   /* event on its own line, market + odds below */
+    }
+        .bankroll-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .bankroll-form button {
+        grid-column: 1 / -1;
+    }
+
+    .bankroll-row {
+        flex-wrap: wrap;
     }
 }
 
