@@ -661,6 +661,24 @@ button:hover {
     min-height: 44px;
 }
 
+.bankroll-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.bankroll-info .bankroll-name {
+    flex: none;
+}
+
+.bankroll-sub {
+    font-size: 12px;
+    font-style: italic;
+    opacity: 0.65;
+}
+
 
 /* ---------- Mobile ---------- */
 

@@ -553,9 +553,50 @@ const bankrollEmpty = document.getElementById("bankrollEmpty");
 const bankrollForm = document.getElementById("bankrollForm");
 const bankrollName = document.getElementById("bankrollName");
 const bankrollAmount = document.getElementById("bankrollAmount");
+const bookmakerOptions = document.getElementById("bookmakerOptions");
 
-// Reads the saved bookmaker balances. Always returns an array,
-// and drops damaged entries so toFixed() can't crash later.
+function roundMoney(value) {
+    return Math.round(value * 100) / 100;
+}
+
+// "−€12.50" or "€12.50"
+function formatMoney(value) {
+    return (value < 0 ? "−" : "") + "€" + Math.abs(value).toFixed(2);
+}
+
+// Adds up what the bets did to one bookmaker's money:
+//   settled = profit/loss of finished bets
+//   inPlay  = stake locked in pending bets
+// Names are compared ignoring case and spaces.
+function calcBookmakerFlow(name) {
+    const key = name.trim().toLowerCase();
+    let settled = 0;
+    let inPlay = 0;
+
+    bets.forEach(function (bet) {
+        if (String(bet.bookmaker || "").trim().toLowerCase() !== key) {
+            return; // bet belongs to another bookmaker
+        }
+
+        const profit = calcProfit(bet);
+        if (profit === null) {
+            inPlay += bet.stake;   // pending: money is out of the account
+        } else {
+            settled += profit;
+        }
+    });
+
+    return { settled: roundMoney(settled), inPlay: roundMoney(inPlay) };
+}
+
+// The balance is never stored. It is always base + results - open stakes.
+function getBalance(account) {
+    const flow = calcBookmakerFlow(account.name);
+    return roundMoney(account.base + flow.settled - flow.inPlay);
+}
+
+// Reads the saved accounts. Always returns an array and drops damaged
+// entries. Accepts the old format (amount) and the new one (base).
 function loadBankroll() {
     try {
         const saved = localStorage.getItem(BANKROLL_KEY);
@@ -571,8 +612,7 @@ function loadBankroll() {
         return parsed.filter(function (account) {
             return account
                 && typeof account.name === "string"
-                && typeof account.amount === "number"
-                && Number.isFinite(account.amount);
+                && (Number.isFinite(account.base) || Number.isFinite(account.amount));
         });
     } catch (error) {
         console.error("Could not load bankroll:", error);
@@ -590,51 +630,87 @@ function saveBankroll() {
 
 let bankroll = loadBankroll();
 
-// Draws the total (in the summary) and one row per bookmaker
+// One-time migration: the previous version stored the typed number as "amount".
+// Convert it to a "base" so the balance shown stays exactly what you typed.
+let bankrollMigrated = false;
+bankroll = bankroll.map(function (account) {
+    if (Number.isFinite(account.base)) {
+        return account;
+    }
+
+    bankrollMigrated = true;
+    const flow = calcBookmakerFlow(account.name);
+    return {
+        id: account.id,
+        name: account.name,
+        base: roundMoney(account.amount - flow.settled + flow.inPlay)
+    };
+});
+if (bankrollMigrated) {
+    saveBankroll();
+}
+
+// Draws the total, one row per bookmaker, and the name suggestions
+// for the Bookmaker field of the bet form
 function renderBankroll() {
-    const total = bankroll.reduce(function (sum, account) {
-        return sum + account.amount;
-    }, 0);
-    bankrollTotal.textContent = "€" + (Math.round(total * 100) / 100).toFixed(2);
+    let total = 0;
 
     bankrollList.innerHTML = "";
+    bookmakerOptions.innerHTML = "";
 
     bankroll.forEach(function (account) {
+        const balance = getBalance(account);
+        const flow = calcBookmakerFlow(account.name);
+        total += balance;
+
         const row = document.createElement("div");
         row.classList.add("bankroll-row");
 
         row.innerHTML = `
-            <span class="bankroll-name">${escapeHtml(account.name)}</span>
-            <span class="bankroll-amount">€${account.amount.toFixed(2)}</span>
+            <div class="bankroll-info">
+                <span class="bankroll-name">${escapeHtml(account.name)}</span>
+                ${flow.inPlay > 0 ? `<span class="bankroll-sub">€${flow.inPlay.toFixed(2)} in open bets</span>` : ""}
+            </div>
+            <span class="bankroll-amount${balance < 0 ? " profit-loss" : ""}">${formatMoney(balance)}</span>
             <div class="bet-actions">
                 <button type="button" class="edit-btn" data-id="${account.id}">Edit</button>
                 <button type="button" class="delete-btn" data-id="${account.id}">Delete</button>
             </div>
         `;
-
         bankrollList.appendChild(row);
+
+        const option = document.createElement("option");
+        option.value = account.name;   // .value is safe, no escaping needed
+        bookmakerOptions.appendChild(option);
     });
+
+    total = roundMoney(total);
+    bankrollTotal.textContent = formatMoney(total);
+    bankrollTotal.classList.toggle("profit-loss", total < 0);
 
     bankrollEmpty.hidden = bankroll.length !== 0;
 }
 
-// Add a bookmaker, or update its amount if the name already exists
-// ("stoiximan" and "Stoiximan" count as the same one)
+// "Set Balance": you type what the bookmaker shows right now, and we work
+// out the base that makes the calculated balance equal to it
 bankrollForm.addEventListener("submit", function (event) {
     event.preventDefault();
 
     const name = bankrollName.value.trim();
-    const amount = Math.round(Number(bankrollAmount.value) * 100) / 100;
+    const typedBalance = roundMoney(Number(bankrollAmount.value));
     const key = name.toLowerCase();
+
+    const flow = calcBookmakerFlow(name);
+    const base = roundMoney(typedBalance - flow.settled + flow.inPlay);
 
     const existing = bankroll.find(function (account) {
         return account.name.toLowerCase() === key;
     });
 
     if (existing) {
-        existing.amount = amount;
+        existing.base = base;
     } else {
-        bankroll.push({ id: Date.now(), name: name, amount: amount });
+        bankroll.push({ id: Date.now(), name: name, base: base });
     }
 
     saveBankroll();
@@ -650,9 +726,9 @@ bankrollList.addEventListener("click", function (event) {
             return a.id === Number(editButton.dataset.id);
         });
         if (account) {
-            // Fill the form; pressing "Set" then updates this bookmaker
+            // Fill the form with the current balance; "Set Balance" then updates it
             bankrollName.value = account.name;
-            bankrollAmount.value = account.amount;
+            bankrollAmount.value = getBalance(account);
             bankrollAmount.focus();
         }
         return;
@@ -674,7 +750,7 @@ bankrollList.addEventListener("click", function (event) {
     }
 });
 
-renderBankroll();
+
 
 // ---------- Event listeners ----------
 
@@ -790,3 +866,5 @@ betForm.addEventListener("submit", function (event) {
 
 updateBetTypeUI();
 renderBets();
+renderStats(visible);
+renderBankroll();

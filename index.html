@@ -43,7 +43,7 @@
             </section>
             <p class="stats-record" id="statRecord"></p>
 
-              <details class="bankroll" id="bankroll">
+               <details class="bankroll" id="bankroll">
                 <summary>
                     <span class="bankroll-title">Bankroll</span>
                     <span class="bankroll-total" id="bankrollTotal">€0.00</span>
@@ -55,8 +55,8 @@
 
                     <form id="bankrollForm" class="bankroll-form">
                         <input type="text" id="bankrollName" placeholder="Stoiximan" aria-label="Bookmaker" required>
-                        <input type="number" id="bankrollAmount" min="0" step="0.01" placeholder="50.00" aria-label="Amount (€)" required>
-                        <button type="submit">Set</button>
+                        <input type="number" id="bankrollAmount" min="0" step="0.01" placeholder="Current balance" aria-label="Current balance (€)" required>
+                        <button type="submit">Set Balance</button>
                     </form>
                 </div>
             </details>
@@ -116,8 +116,10 @@
                         <input
                             type="text"
                             id="bookmaker"
+                            list="bookmakerOptions"
                             placeholder="Stoiximan, Novibet..."
                         >
+                        <datalist id="bookmakerOptions"></datalist>
                     </div>
 
                     <div class="form-field">
