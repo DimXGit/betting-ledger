@@ -19,200 +19,227 @@
             <p>Personal Betting Ledger</p>
         </header>
 
+        <!-- Bookmark tabs -->
+        <nav class="tabs" id="tabBar" role="tablist">
+            <button type="button" class="tab-btn active" data-tab="ledger" role="tab" aria-selected="true">Ledger</button>
+            <button type="button" class="tab-btn" data-tab="stats" role="tab" aria-selected="false">Stats</button>
+        </nav>
+
         <section class="ledger-page">
 
-            <h2>My Ledger</h2>
+            <!-- ========== LEDGER TAB ========== -->
+            <section class="tab-panel" id="panelLedger" data-tab="ledger">
 
-            <section class="stats" id="stats">
-                <div class="stat">
-                    <span class="stat-label">Profit</span>
-                    <span class="stat-value" id="statProfit">€0.00</span>
+                <h2>My Ledger</h2>
+
+                <details class="bankroll" id="bankroll">
+                    <summary>
+                        <span class="bankroll-title">Bankroll</span>
+                        <span class="bankroll-total" id="bankrollTotal">€0.00</span>
+                    </summary>
+
+                    <div class="bankroll-body">
+                        <p class="bankroll-empty" id="bankrollEmpty">No bookmakers yet.</p>
+                        <div id="bankrollList"></div>
+
+                        <form id="bankrollForm" class="bankroll-form">
+                            <input type="text" id="bankrollName" placeholder="Stoiximan" aria-label="Bookmaker" required>
+                            <input type="number" id="bankrollAmount" min="0" step="0.01" placeholder="Current balance" aria-label="Current balance (€)" required>
+                            <button type="submit">Set Balance</button>
+                        </form>
+                    </div>
+                </details>
+
+                <form id="betForm">
+                    <h3>New Entry</h3>
+
+                    <div class="form-grid">
+
+                        <div class="form-field">
+                            <label for="betType">Bet Type</label>
+                            <select id="betType" required>
+                                <option value="single">Single</option>
+                                <option value="accumulator">Accumulator (Paroli)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="date">Date</label>
+                            <input type="date" id="date" required>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="sport">Sport</label>
+                            <input type="text" id="sport" placeholder="Football" required>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="bookmaker">Bookmaker</label>
+                            <input
+                                type="text"
+                                id="bookmaker"
+                                list="bookmakerOptions"
+                                placeholder="Stoiximan, Novibet..."
+                            >
+                            <datalist id="bookmakerOptions"></datalist>
+                        </div>
+
+                        <div class="form-field" id="eventField">
+                            <label for="event">Event / Match</label>
+                            <input
+                                type="text"
+                                id="event"
+                                placeholder="Arsenal vs Chelsea"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-field" id="marketField">
+                            <label for="market">Market</label>
+                            <input
+                                type="text"
+                                id="market"
+                                placeholder="Over 2.5, Home Win, BTTS..."
+                                required
+                            >
+                        </div>
+
+                        <!-- Accumulator legs: hidden and disabled unless Bet Type is Accumulator -->
+                        <fieldset class="legs" id="legsSection" hidden disabled>
+                            <div class="legs-title">Legs (selections)</div>
+                            <div id="legsList"></div>
+                            <button type="button" id="addLegBtn" class="add-leg-btn">+ Add Leg</button>
+                        </fieldset>
+
+                        <div class="form-field">
+                            <label for="odds">Odds</label>
+                            <input
+                                type="number"
+                                id="odds"
+                                min="1.01"
+                                step="0.01"
+                                placeholder="2.00"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-field">
+                            <label for="stake">Stake (€)</label>
+                            <input
+                                type="number"
+                                id="stake"
+                                min="0.01"
+                                step="0.01"
+                                placeholder="10.00"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-field">
+                            <label for="result">Result</label>
+                            <select id="result" required>
+                                <option value="pending">Pending</option>
+                                <option value="won">Won</option>
+                                <option value="lost">Lost</option>
+                                <option value="void">Void</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <button type="submit" id="submitBtn">+ Write Entry</button>
+                    <button type="button" id="cancelEditBtn" class="cancel-btn" hidden>Cancel Edit</button>
+
+                </form>
+
+                <h3 class="section-title">Recent Entries</h3>
+
+                <div class="empty-state">
+                    <p id="recentEmpty">No entries yet.</p>
                 </div>
-                <div class="stat">
-                    <span class="stat-label">ROI</span>
-                    <span class="stat-value" id="statRoi">–</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Win Rate</span>
-                    <span class="stat-value" id="statWinRate">–</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Staked</span>
-                    <span class="stat-value" id="statStaked">€0.00</span>
-                </div>
+                <div id="recentList"></div>
+
             </section>
-            <p class="stats-record" id="statRecord"></p>
 
-               <details class="bankroll" id="bankroll">
-                <summary>
-                    <span class="bankroll-title">Bankroll</span>
-                    <span class="bankroll-total" id="bankrollTotal">€0.00</span>
-                </summary>
+            <!-- ========== STATS TAB ========== -->
+            <section class="tab-panel" id="panelStats" data-tab="stats" hidden>
 
-                <div class="bankroll-body">
-                    <p class="bankroll-empty" id="bankrollEmpty">No bookmakers yet.</p>
-                    <div id="bankrollList"></div>
+                <h2>Stats &amp; History</h2>
 
-                    <form id="bankrollForm" class="bankroll-form">
-                        <input type="text" id="bankrollName" placeholder="Stoiximan" aria-label="Bookmaker" required>
-                        <input type="number" id="bankrollAmount" min="0" step="0.01" placeholder="Current balance" aria-label="Current balance (€)" required>
-                        <button type="submit">Set Balance</button>
-                    </form>
-                </div>
-            </details>
+                <section class="stats" id="stats">
+                    <div class="stat">
+                        <span class="stat-label">Profit</span>
+                        <span class="stat-value" id="statProfit">€0.00</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">ROI</span>
+                        <span class="stat-value" id="statRoi">–</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Win Rate</span>
+                        <span class="stat-value" id="statWinRate">–</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Staked</span>
+                        <span class="stat-value" id="statStaked">€0.00</span>
+                    </div>
+                </section>
+                <p class="stats-record" id="statRecord"></p>
 
-            <form id="betForm">
-                <h3>New Entry</h3>
+                <div class="filters" id="filters" hidden>
+                    <h3>Filter History</h3>
 
-                <div class="form-grid">
+                    <div class="filter-grid">
+                        <div class="form-field">
+                            <label for="filterResult">Result</label>
+                            <select id="filterResult">
+                                <option value="all">All</option>
+                                <option value="pending">Pending</option>
+                                <option value="won">Won</option>
+                                <option value="lost">Lost</option>
+                                <option value="void">Void</option>
+                            </select>
+                        </div>
 
-                    <div class="form-field">
-                        <label for="betType">Bet Type</label>
-                        <select id="betType" required>
-                            <option value="single">Single</option>
-                            <option value="accumulator">Accumulator (Paroli)</option>
-                        </select>
+                        <div class="form-field">
+                            <label for="filterSport">Sport</label>
+                            <select id="filterSport">
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="filterBookmaker">Bookmaker</label>
+                            <select id="filterBookmaker">
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="filterFrom">From</label>
+                            <input type="date" id="filterFrom">
+                        </div>
+
+                        <div class="form-field">
+                            <label for="filterTo">To</label>
+                            <input type="date" id="filterTo">
+                        </div>
                     </div>
 
-                    <div class="form-field">
-                        <label for="date">Date</label>
-                        <input type="date" id="date" required>
-                    </div>
-
-                    <div class="form-field">
-                        <label for="sport">Sport</label>
-                        <input type="text" id="sport" placeholder="Football" required>
-                    </div>
-
-                    <div class="form-field" id="eventField">
-                        <label for="event">Event / Match</label>
-                        <input
-                            type="text"
-                            id="event"
-                            placeholder="Arsenal vs Chelsea"
-                            required
-                        >
-                    </div>
-
-                    <div class="form-field" id="marketField">
-                        <label for="market">Market</label>
-                        <input
-                            type="text"
-                            id="market"
-                            placeholder="Over 2.5, Home Win, BTTS..."
-                            required
-                        >
-                    </div>
-
-                    <!-- Accumulator legs: hidden and disabled unless Bet Type is Accumulator -->
-                    <fieldset class="legs" id="legsSection" hidden disabled>
-                        <div class="legs-title">Legs (selections)</div>
-                        <div id="legsList"></div>
-                        <button type="button" id="addLegBtn" class="add-leg-btn">+ Add Leg</button>
-                    </fieldset>
-
-                    <div class="form-field">
-                        <label for="bookmaker">Bookmaker</label>
-                        <input
-                            type="text"
-                            id="bookmaker"
-                            list="bookmakerOptions"
-                            placeholder="Stoiximan, Novibet..."
-                        >
-                        <datalist id="bookmakerOptions"></datalist>
-                    </div>
-
-                    <div class="form-field">
-                        <label for="odds">Odds</label>
-                        <input
-                            type="number"
-                            id="odds"
-                            min="1.01"
-                            step="0.01"
-                            placeholder="2.00"
-                            required
-                        >
-                    </div>
-
-                    <div class="form-field">
-                        <label for="stake">Stake (€)</label>
-                        <input
-                            type="number"
-                            id="stake"
-                            min="0.01"
-                            step="0.01"
-                            placeholder="10.00"
-                            required
-                        >
-                    </div>
-
-                    <div class="form-field">
-                        <label for="result">Result</label>
-                        <select id="result" required>
-                            <option value="pending">Pending</option>
-                            <option value="won">Won</option>
-                            <option value="lost">Lost</option>
-                            <option value="void">Void</option>
-                        </select>
-                    </div>
-
-                </div>
-
-                <button type="submit" id="submitBtn">+ Write Entry</button>
-                <button type="button" id="cancelEditBtn" class="cancel-btn" hidden>Cancel Edit</button>
-
-            </form>
-
-            <div class="filters" id="filters" hidden>
-                <h3>Filter History</h3>
-
-                <div class="filter-grid">
-                    <div class="form-field">
-                        <label for="filterResult">Result</label>
-                        <select id="filterResult">
-                            <option value="all">All</option>
-                            <option value="pending">Pending</option>
-                            <option value="won">Won</option>
-                            <option value="lost">Lost</option>
-                            <option value="void">Void</option>
-                        </select>
-                    </div>
-
-                    <div class="form-field">
-                        <label for="filterSport">Sport</label>
-                        <select id="filterSport">
-                            <option value="all">All</option>
-                        </select>
-                    </div>
-
-                    <div class="form-field">
-                        <label for="filterBookmaker">Bookmaker</label>
-                        <select id="filterBookmaker">
-                            <option value="all">All</option>
-                        </select>
-                    </div>
-
-                    <div class="form-field">
-                        <label for="filterFrom">From</label>
-                        <input type="date" id="filterFrom">
-                    </div>
-
-                    <div class="form-field">
-                        <label for="filterTo">To</label>
-                        <input type="date" id="filterTo">
+                    <div class="filter-footer">
+                        <span class="filter-count" id="filterCount"></span>
+                        <button type="button" id="clearFiltersBtn" class="clear-btn">Clear Filters</button>
                     </div>
                 </div>
 
-                <div class="filter-footer">
-                    <span class="filter-count" id="filterCount"></span>
-                    <button type="button" id="clearFiltersBtn" class="clear-btn">Clear Filters</button>
-                </div>
-            </div>
+                <h3 class="section-title">History</h3>
 
-            <div class="empty-state">
-                <p id="emptyMessage">No entries yet.</p>
-            </div>
-            <div id="betList"></div>
+                <div class="empty-state">
+                    <p id="emptyMessage">No entries yet.</p>
+                </div>
+                <div id="betList"></div>
+
+            </section>
 
         </section>
 

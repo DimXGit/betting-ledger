@@ -97,6 +97,55 @@ button:hover {
     opacity: 0.85;
 }
 
+/* ---------- Bookmark tabs ---------- */
+
+.tabs {
+    display: flex;
+    gap: 6px;
+    padding: 0 16px;
+    margin-bottom: -1px;   /* tabs overlap the page edge so the active one joins it */
+
+    position: relative;
+    z-index: 1;
+}
+
+.tab-btn {
+    padding: 10px 26px;
+
+    background: #bfa57c;
+    color: #4b3021;
+    border: 1px solid rgba(60, 40, 20, 0.3);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.tab-btn:hover {
+    background: #cdb48c;
+    opacity: 1;
+}
+
+.tab-btn.active,
+.tab-btn.active:hover {
+    background: #ead9b5;     /* same colour as the page below */
+    color: #2b211b;
+    font-weight: bold;
+}
+
+.tab-panel[hidden] {
+    display: none;
+}
+
+.section-title {
+    margin: 32px 0 8px;
+    font-size: 16px;
+    text-align: center;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
 /* ---------- Bet form ---------- */
 
 #betForm {
@@ -725,6 +774,14 @@ button:hover {
     .bankroll-row {
         flex-wrap: wrap;
     }
+    .tabs {
+        padding: 0 8px;
+    }
+
+    .tab-btn {
+        flex: 1;
+        padding: 10px 12px;
+    }
 }
 
 
@@ -737,6 +794,10 @@ button:hover {
 
     .form-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    #eventField,
+    #marketField {
+        grid-column: span 2;
     }
 }
 

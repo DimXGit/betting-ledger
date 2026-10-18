@@ -1,8 +1,15 @@
 const betForm = document.getElementById("betForm");
 const betList = document.getElementById("betList");
+const recentList = document.getElementById("recentList");
 const emptyMessage = document.getElementById("emptyMessage");
+const recentEmpty = document.getElementById("recentEmpty");
 const submitBtn = document.getElementById("submitBtn");
 const cancelEditBtn = document.getElementById("cancelEditBtn");
+
+// Tabs
+const tabBar = document.getElementById("tabBar");
+const tabButtons = document.querySelectorAll(".tab-btn");
+const tabPanels = document.querySelectorAll(".tab-panel");
 
 // Form fields that change depending on the bet type
 const betTypeSelect = document.getElementById("betType");
@@ -31,6 +38,9 @@ const filterCount = document.getElementById("filterCount");
 const clearFiltersBtn = document.getElementById("clearFiltersBtn");
 
 const STORAGE_KEY = "teft.bets";
+
+// How many entries the Ledger tab shows under the form
+const RECENT_COUNT = 5;
 
 // Reads saved bets from localStorage. Always returns an array,
 // even if nothing is saved yet or the saved data is damaged.
@@ -219,6 +229,21 @@ function renderStats(list) {
         ? ""
         : stats.won + " won · " + stats.lost + " lost · "
             + stats.voided + " void · " + stats.pending + " pending";
+}
+
+// ---------- Tabs ----------
+
+// Shows one tab panel and hides the others ("ledger" or "stats")
+function showTab(name) {
+    tabButtons.forEach(function (button) {
+        const isActive = button.dataset.tab === name;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+
+    tabPanels.forEach(function (panel) {
+        panel.hidden = panel.dataset.tab !== name;
+    });
 }
 
 // ---------- Accumulator legs (form) ----------
@@ -413,6 +438,9 @@ function startEdit(id) {
 
     editingId = id;
 
+    // The form lives on the Ledger tab, so go there first
+    showTab("ledger");
+
     betTypeSelect.value = bet.betType;
     document.getElementById("date").value = bet.date;
     document.getElementById("sport").value = bet.sport;
@@ -462,6 +490,56 @@ function deleteBet(id) {
 
 // ---------- Rendering ----------
 
+// Builds the DOM element for one ledger entry. Used by both the
+// "Recent Entries" list and the full history, so they always look the same.
+function createBetEntry(bet) {
+    const betEntry = document.createElement("div");
+    betEntry.classList.add("bet-entry");
+
+    const profit = describeProfit(calcProfit(bet));
+
+    // Line under the title: sport · market (if any) · type · bookmaker (if any)
+    const metaParts = [bet.sport];
+    if (bet.market) {
+        metaParts.push(bet.market);
+    }
+    metaParts.push(bet.betType === "accumulator" ? "Accumulator" : "Single");
+    if (bet.bookmaker) {
+        metaParts.push(bet.bookmaker);
+    }
+    const metaText = metaParts.map(function (part) {
+        return escapeHtml(part);
+    }).join(" · ");
+
+    // One list item per leg (empty string for singles and old accumulators)
+    const legsHtml = bet.legs.length > 0
+        ? '<ul class="bet-legs">' + bet.legs.map(function (leg) {
+            return "<li>" + escapeHtml(leg.event) + " · " + escapeHtml(leg.market)
+                + " @ " + leg.odds.toFixed(2) + "</li>";
+        }).join("") + "</ul>"
+        : "";
+
+    betEntry.innerHTML = `
+        <div class="bet-main">
+            <span class="bet-date">${escapeHtml(bet.date)}</span>
+            <strong class="bet-event">${escapeHtml(bet.event)}</strong>
+            <span class="bet-meta">${metaText}</span>
+            ${legsHtml}
+        </div>
+        <div class="bet-numbers">
+            <span class="bet-odds">@ ${bet.odds.toFixed(2)}</span>
+            <span class="bet-stake">€${bet.stake.toFixed(2)}</span>
+            <span class="bet-profit ${profit.className}">${profit.text}</span>
+            <div class="bet-actions">
+                <button type="button" class="edit-btn" data-id="${bet.id}">Edit</button>
+                <button type="button" class="delete-btn" data-id="${bet.id}">Delete</button>
+            </div>
+        </div>
+    `;
+
+    return betEntry;
+}
+
 function renderBets() {
     // Refresh the dropdowns first, because bets may have been added or removed
     fillSelect(filterSport, "sport");
@@ -470,58 +548,18 @@ function renderBets() {
 
     const visible = getFilteredBets();
 
+    // Full history (Stats tab): filtered, newest first
     betList.innerHTML = "";
-
-    // Newest first, without changing the original array
-    const newestFirst = [...visible].reverse();
-
-    newestFirst.forEach(function (bet) {
-        const betEntry = document.createElement("div");
-        betEntry.classList.add("bet-entry");
-
-        const profit = describeProfit(calcProfit(bet));
-
-        // Line under the title: sport · market (if any) · type · bookmaker (if any)
-        const metaParts = [bet.sport];
-        if (bet.market) {
-            metaParts.push(bet.market);
-        }
-        metaParts.push(bet.betType === "accumulator" ? "Accumulator" : "Single");
-        if (bet.bookmaker) {
-            metaParts.push(bet.bookmaker);
-        }
-        const metaText = metaParts.map(function (part) {
-            return escapeHtml(part);
-        }).join(" · ");
-
-        // One list item per leg (empty string for singles and old accumulators)
-        const legsHtml = bet.legs.length > 0
-            ? '<ul class="bet-legs">' + bet.legs.map(function (leg) {
-                return "<li>" + escapeHtml(leg.event) + " · " + escapeHtml(leg.market)
-                    + " @ " + leg.odds.toFixed(2) + "</li>";
-            }).join("") + "</ul>"
-            : "";
-
-        betEntry.innerHTML = `
-        <div class="bet-main">
-        <span class="bet-date">${escapeHtml(bet.date)}</span>
-        <strong class="bet-event">${escapeHtml(bet.event)}</strong>
-        <span class="bet-meta">${metaText}</span>
-        ${legsHtml}
-    </div>
-    <div class="bet-numbers">
-        <span class="bet-odds">@ ${bet.odds.toFixed(2)}</span>
-        <span class="bet-stake">€${bet.stake.toFixed(2)}</span>
-        <span class="bet-profit ${profit.className}">${profit.text}</span>
-        <div class="bet-actions">
-            <button type="button" class="edit-btn" data-id="${bet.id}">Edit</button>
-            <button type="button" class="delete-btn" data-id="${bet.id}">Delete</button>
-        </div>
-    </div>
-        `;
-
-        betList.appendChild(betEntry);
+    [...visible].reverse().forEach(function (bet) {
+        betList.appendChild(createBetEntry(bet));
     });
+
+    // Recent entries (Ledger tab): the last few bets, never filtered
+    recentList.innerHTML = "";
+    bets.slice(-RECENT_COUNT).reverse().forEach(function (bet) {
+        recentList.appendChild(createBetEntry(bet));
+    });
+    recentEmpty.style.display = bets.length === 0 ? "block" : "none";
 
     // Two different empty situations need two different messages
     if (bets.length === 0) {
@@ -753,12 +791,11 @@ bankrollList.addEventListener("click", function (event) {
     }
 });
 
-
-
 // ---------- Event listeners ----------
 
-// One listener on the list handles every Edit and Delete button (event delegation)
-betList.addEventListener("click", function (event) {
+// Handles every Edit and Delete button of a bet entry (event delegation).
+// The same function is attached to both lists (recent + history).
+function handleEntryClick(event) {
     const editButton = event.target.closest(".edit-btn");
     if (editButton) {
         startEdit(Number(editButton.dataset.id));
@@ -778,6 +815,17 @@ betList.addEventListener("click", function (event) {
         if (confirm('Delete "' + bet.event + '"?')) {
             deleteBet(id);
         }
+    }
+}
+
+betList.addEventListener("click", handleEntryClick);
+recentList.addEventListener("click", handleEntryClick);
+
+// One listener for the whole tab bar
+tabBar.addEventListener("click", function (event) {
+    const button = event.target.closest(".tab-btn");
+    if (button) {
+        showTab(button.dataset.tab);
     }
 });
 
@@ -868,6 +916,4 @@ betForm.addEventListener("submit", function (event) {
 });
 
 updateBetTypeUI();
-renderBets();
-renderStats(visible);
-renderBankroll();
+renderBets();   // also draws the stats, the recent list and the bankroll
