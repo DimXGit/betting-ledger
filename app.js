@@ -974,6 +974,10 @@ function renderBankroll() {
         const flow = calcBookmakerFlow(account.name);
         total += balance;
 
+        // Overall win/loss of this bookmaker: all settled bets added up.
+        // describeProfit gives the text (+€12.50 / −€4.00) and the colour class.
+        const overall = describeProfit(flow.settled);
+
         const row = document.createElement("div");
         row.classList.add("bankroll-row");
 
@@ -981,6 +985,7 @@ function renderBankroll() {
             <div class="bankroll-info">
                 <span class="bankroll-name">${escapeHtml(account.name)}</span>
                 ${flow.inPlay > 0 ? `<span class="bankroll-sub">€${flow.inPlay.toFixed(2)} in open bets</span>` : ""}
+                <span class="bankroll-pl ${overall.className}">${overall.text} overall</span>
             </div>
             <span class="bankroll-amount${balance < 0 ? " profit-loss" : ""}">${formatMoney(balance)}</span>
             <div class="bet-actions">

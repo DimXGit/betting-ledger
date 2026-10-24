@@ -1026,6 +1026,33 @@ button:hover {
     opacity: 0.65;
 }
 
+/* Overall win/loss of one bookmaker: a small coloured box under its name */
+.bankroll-pl {
+    align-self: flex-start;   /* stay as wide as the text instead of stretching */
+    margin-top: 2px;
+    padding: 1px 8px;
+
+    border-radius: 10px;
+
+    font-size: 12px;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+.bankroll-pl.profit-win {
+    background: #dbe6c5;
+}
+
+.bankroll-pl.profit-loss {
+    background: #efd0c6;
+}
+
+/* Nothing settled yet (or exactly break-even): neutral box */
+.bankroll-pl.profit-pending {
+    background: #eadfc3;
+    font-weight: normal;
+}
+
 /* ---------- Mobile ---------- */
 
 @media (max-width: 560px) {
