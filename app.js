@@ -26,6 +26,9 @@ const marketField = document.getElementById("marketField");
 const eventInput = document.getElementById("event");
 const marketInput = document.getElementById("market");
 const oddsInput = document.getElementById("odds");
+const resultSelect = document.getElementById("result");
+const cashoutField = document.getElementById("cashoutField");
+const cashoutInput = document.getElementById("cashout");
 const legsSection = document.getElementById("legsSection");
 const legsList = document.getElementById("legsList");
 const addLegBtn = document.getElementById("addLegBtn");
@@ -78,6 +81,7 @@ function loadBets() {
             .map(function (bet) {
                 return {
                     result: "pending",
+                    cashout: null,
                     ...bet,
                     // Bets saved before accumulator legs existed get an empty list.
                     // Damaged legs are dropped so toFixed() can't crash.
@@ -153,6 +157,13 @@ function calcProfit(bet) {
         profit = -bet.stake;
     } else if (bet.result === "void") {
         profit = 0;
+    } else if (bet.result === "cashout") {
+        // You receive the cash-out amount instead of winning or losing the
+        // stake, so profit is what you got back minus what you staked
+        if (!Number.isFinite(bet.cashout)) {
+            return null; // damaged entry without an amount: treat as unsettled
+        }
+        profit = bet.cashout - bet.stake;
     } else {
         return null; // pending
     }
@@ -189,8 +200,9 @@ function calcStats(allBets) {
     let won = 0;
     let lost = 0;
     let voided = 0;
+    let cashedOut = 0;
     let pending = 0;
-    let staked = 0;   // only won + lost bets (void and pending were never "at risk")
+    let staked = 0;   // won, lost and cashed-out bets (void and pending were never "at risk")
     let profit = 0;
 
     allBets.forEach(function (bet) {
@@ -202,6 +214,9 @@ function calcStats(allBets) {
             staked += bet.stake;
         } else if (bet.result === "void") {
             voided++;
+        } else if (bet.result === "cashout" && Number.isFinite(bet.cashout)) {
+            cashedOut++;
+            staked += bet.stake;
         } else {
             pending++;
         }
@@ -216,13 +231,16 @@ function calcStats(allBets) {
     profit = Math.round(profit * 100) / 100;
     staked = Math.round(staked * 100) / 100;
 
+    // Win rate only looks at won and lost bets: a cash-out is neither
     const decided = won + lost;
 
     return {
         won: won,
         lost: lost,
         voided: voided,
+        cashedOut: cashedOut,
         pending: pending,
+        settled: won + lost + voided + cashedOut,   // everything that has a result
         staked: staked,
         profit: profit,
         winRate: decided > 0 ? (won / decided) * 100 : null,
@@ -252,6 +270,7 @@ function renderStats(list) {
     statRecord.textContent = list.length === 0
         ? ""
         : stats.won + " won · " + stats.lost + " lost · "
+            + stats.cashedOut + " cashed out · "
             + stats.voided + " void · " + stats.pending + " pending";
 }
 
@@ -352,6 +371,16 @@ function updateBetTypeUI() {
         }
         updateCombinedOdds();
     }
+}
+
+// Shows the cash-out amount field only when the result is "Cashed Out".
+// A disabled input is skipped by form validation, so the hidden field
+// can never block a normal submit.
+function updateResultUI() {
+    const isCashout = resultSelect.value === "cashout";
+
+    cashoutField.hidden = !isCashout;
+    cashoutInput.disabled = !isCashout;
 }
 
 // ---------- Filtering ----------
@@ -490,6 +519,7 @@ function stopEditing() {
     betForm.reset();
     legsList.innerHTML = "";   // reset() doesn't know about our dynamic rows
     updateBetTypeUI();         // reset() also doesn't fire "change", so refresh by hand
+    updateResultUI();
     setTodayDate();
     submitBtn.textContent = "+ Write Entry";
     cancelEditBtn.hidden = true;
@@ -520,6 +550,8 @@ function startEdit(id) {
     oddsInput.value = bet.odds;
     document.getElementById("stake").value = bet.stake;
     document.getElementById("result").value = bet.result;
+    cashoutInput.value = Number.isFinite(bet.cashout) ? bet.cashout : "";
+    updateResultUI();
 
     // Rebuild the leg rows for this bet
     legsList.innerHTML = "";
@@ -576,6 +608,9 @@ function createBetEntry(bet) {
         metaParts.push(bet.market);
     }
     metaParts.push(bet.betType === "accumulator" ? "Accumulator" : "Single");
+    if (bet.result === "cashout" && Number.isFinite(bet.cashout)) {
+        metaParts.push("Cashed out " + formatMoney(bet.cashout));
+    }
     if (bet.bookmaker) {
         metaParts.push(bet.bookmaker);
     }
@@ -729,7 +764,7 @@ function renderCalendar() {
         const dateStr = calendarMonth + "-" + String(day).padStart(2, "0");
         const dayBets = byDate[dateStr] || [];
         const stats = calcStats(dayBets);
-        const settled = stats.won + stats.lost + stats.voided;
+        const settled = stats.settled;
 
         const cell = document.createElement("button");
         cell.type = "button";
@@ -784,7 +819,7 @@ function renderCalendar() {
     }
 
     const summaryStats = calcStats(summaryBets);
-    const summarySettled = summaryStats.won + summaryStats.lost + summaryStats.voided;
+    const summarySettled = summaryStats.settled;
 
     calSummary.textContent = summaryLabel + " · "
         + summaryBets.length + (summaryBets.length === 1 ? " bet" : " bets") + " · "
@@ -1108,6 +1143,9 @@ clearFiltersBtn.addEventListener("click", clearFilters);
 // Bet type switched: show the legs section or the single-bet fields
 betTypeSelect.addEventListener("change", updateBetTypeUI);
 
+// Result switched: show or hide the cash-out amount field
+resultSelect.addEventListener("change", updateResultUI);
+
 addLegBtn.addEventListener("click", function () {
     addLegRow();
 });
@@ -1156,6 +1194,8 @@ betForm.addEventListener("submit", function (event) {
         odds = Number(oddsInput.value);
     }
 
+    const result = resultSelect.value;
+
     const formData = {
         betType: betType,
         date: document.getElementById("date").value,
@@ -1165,7 +1205,9 @@ betForm.addEventListener("submit", function (event) {
         bookmaker: document.getElementById("bookmaker").value.trim(),
         odds: odds,
         stake: Number(document.getElementById("stake").value),
-        result: document.getElementById("result").value,
+        result: result,
+        // Only a cashed-out bet keeps an amount; everything else stores null
+        cashout: result === "cashout" ? Number(cashoutInput.value) : null,
         legs: legs
     };
 
@@ -1188,4 +1230,5 @@ betForm.addEventListener("submit", function (event) {
 });
 
 updateBetTypeUI();
+updateResultUI();
 renderBets();   // also draws the stats, both lists, the calendar and the bankroll
