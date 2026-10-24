@@ -1,3 +1,9 @@
+:root {
+    /* One shared width for every box on the page, so everything lines up.
+       Change this single number to make all of them wider or narrower. */
+    --panel-width: 760px;
+}
+
 * {
     box-sizing: border-box;
 }
@@ -146,10 +152,65 @@ button:hover {
     letter-spacing: 2px;
     text-transform: uppercase;
 }
+
+/* ---------- New Entry bar (the (+) button) ---------- */
+
+.entry-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    max-width: var(--panel-width);
+    margin: 0 auto 24px;
+    padding: 9px 20px;
+
+    background: #f3e6c8;
+    border: 1px solid rgba(60, 40, 20, 0.25);
+    border-radius: 12px;
+}
+
+.entry-bar-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #66543e;
+}
+
+.entry-toggle {
+    margin-left: auto;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+    background: #744b23;
+    color: #fffaf0;
+
+    font-size: 24px;
+    line-height: 1;
+
+    transition: transform 0.2s, background 0.2s;
+}
+
+.entry-toggle:hover {
+    background: #583719;
+    opacity: 1;
+}
+
+/* Turns the + into an × while the form is open */
+.entry-toggle.open {
+    transform: rotate(45deg);
+}
+
 /* ---------- Bet form ---------- */
 
 #betForm {
-    max-width: 760px;
+    max-width: var(--panel-width);
     margin: 0 auto 32px;
     padding: 28px;
 
@@ -159,18 +220,16 @@ button:hover {
     box-shadow: 0 2px 10px rgba(60, 40, 20, 0.1);
 }
 
-#betForm h3 {
-    margin: 0 0 20px;
-    font-size: 20px;
-    text-align: center;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+/* the padding/margin rules above don't touch display, but this keeps
+   hidden winning even if a display rule is added later */
+#betForm[hidden] {
+    display: none;
 }
 
 .form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
+    gap: 16px;
     margin-bottom: 24px;
 }
 
@@ -239,7 +298,20 @@ button:hover {
     transform: scale(0.99);
 }
 
+/* .form-field uses display: flex, which would beat the hidden attribute,
+   so this line makes sure hidden always wins */
+.form-field[hidden] {
+    display: none;
+}
+
 /* ---------- Ledger entries ---------- */
+
+/* Both lists use the same width as every other box */
+#betList,
+#recentList {
+    max-width: var(--panel-width);
+    margin: 0 auto;
+}
 
 .bet-entry {
     display: flex;
@@ -319,10 +391,116 @@ button:hover {
     opacity: 0.6;
 }
 
+.bet-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.edit-btn,
+.delete-btn {
+    padding: 4px 10px;
+    background: transparent;
+    border-radius: 5px;
+    font-size: 12px;
+}
+
+.edit-btn {
+    color: #704923;
+    border: 1px solid rgba(112, 73, 35, 0.45);
+}
+
+.edit-btn:hover {
+    background: #704923;
+    color: #fffaf0;
+    opacity: 1;
+}
+
+.delete-btn {
+    color: #8a3a2c;
+    border: 1px solid rgba(138, 58, 44, 0.45);
+}
+
+.delete-btn:hover {
+    background: #8a3a2c;
+    color: #fffaf0;
+    opacity: 1;
+}
+
+/* Secondary button under the form while editing */
+#betForm .cancel-btn {
+    margin-top: 10px;
+    background: transparent;
+    color: #704923;
+    border: 1px solid rgba(112, 73, 35, 0.45);
+}
+
+#betForm .cancel-btn:hover {
+    background: rgba(112, 73, 35, 0.1);
+}
+
+/* Legs shown inside a ledger entry */
+.bet-legs {
+    margin: 6px 0 0;
+    padding-left: 16px;
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.bet-legs li {
+    margin-top: 2px;
+}
+
+/* ---------- Page buttons (← Page 1 of 3 →) ---------- */
+
+.pager {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+
+    max-width: var(--panel-width);
+    margin: 16px auto 0;
+}
+
+/* display: flex would beat the hidden attribute, so hidden must win here */
+.pager[hidden] {
+    display: none;
+}
+
+.page-btn {
+    min-width: 44px;
+    padding: 6px 14px;
+
+    background: transparent;
+    color: #704923;
+    border: 1px solid rgba(112, 73, 35, 0.45);
+
+    font-size: 16px;
+}
+
+.page-btn:hover {
+    background: rgba(112, 73, 35, 0.1);
+    opacity: 1;
+}
+
+.page-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+    background: transparent;
+}
+
+.page-info {
+    font-size: 13px;
+    font-style: italic;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+}
+
 /* ---------- Stats dashboard ---------- */
 
 .stats {
-    max-width: 760px;
+    max-width: var(--panel-width);
     margin: 0 auto 8px;
 
     display: grid;
@@ -357,97 +535,75 @@ button:hover {
 }
 
 .stats-record {
-    max-width: 760px;
-    margin: 0 auto 28px;
+    max-width: var(--panel-width);
+    margin: 0 auto 20px;
 
     text-align: center;
     font-size: 13px;
     font-style: italic;
     opacity: 0.7;
 }
-/* ---------- Filters (compact, one line) ---------- */
 
-.filters {
-    margin: 0 0 20px;
-    padding: 12px 14px;
-
-    background: #f3e6c8;
-    border: 1px solid rgba(60, 40, 20, 0.25);
-    border-radius: 12px;
-}
-
-/* display rules would override the hidden attribute,
-   so this line makes sure hidden always wins */
-.filters[hidden] {
-    display: none;
-}
-
-.filter-row {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
-    gap: 10px;
-    align-items: end;
-}
-
-/* Smaller versions of the form fields (two classes beat the big .form-field rules) */
-.filters .form-field {
-    gap: 4px;
-}
-
-.filters .form-field label {
-    font-size: 10px;
-}
-
-.filters .form-field input,
-.filters .form-field select {
-    min-height: 34px;
-    padding: 4px 8px;
-    font-size: 13px;
-}
-
-.filter-count {
-    margin-top: 8px;
-    text-align: right;
-    font-size: 12px;
-    font-style: italic;
-    opacity: 0.7;
-}
-
-.clear-btn {
-    min-height: 34px;
-    padding: 4px 12px;
-    background: transparent;
-    color: #704923;
-    border: 1px solid rgba(112, 73, 35, 0.45);
-    font-size: 13px;
-}
-
-.clear-btn:hover {
-    background: rgba(112, 73, 35, 0.1);
-    opacity: 1;
-}
-
-/* Tablets: five fields in one row get too narrow, so use three columns */
-@media (max-width: 900px) {
-    .filter-row {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .filter-row .clear-btn {
-        grid-column: 1 / -1;
-    }
-}
-
-/* ---------- Calendar ---------- */
+/* ---------- Calendar (dropdown) ---------- */
 
 .calendar {
-    max-width: 760px;
+    max-width: var(--panel-width);
     margin: 0 auto 24px;
-    padding: 16px 20px;
 
     background: #f3e6c8;
     border: 1px solid rgba(60, 40, 20, 0.25);
     border-radius: 12px;
+}
+
+.calendar summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+
+    cursor: pointer;
+    list-style: none;          /* removes the default arrow (Firefox) */
+}
+
+.calendar summary::-webkit-details-marker {
+    display: none;             /* removes the default arrow (Chrome / Safari) */
+}
+
+.calendar summary::after {
+    content: "▾";
+    transition: transform 0.2s;
+}
+
+.calendar[open] summary::after {
+    transform: rotate(180deg);
+}
+
+.cal-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #66543e;
+    white-space: nowrap;
+}
+
+/* Visible even when the calendar is closed: shows the selected day or the month */
+.cal-summary {
+    margin-left: auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+
+    font-size: 13px;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+.cal-body {
+    padding: 14px 20px 16px;
+    border-top: 1px solid rgba(60, 40, 20, 0.2);
 }
 
 .cal-header {
@@ -553,73 +709,86 @@ button:hover {
 
 .cal-footer {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
+    justify-content: flex-end;
     margin-top: 12px;
 }
 
-.cal-summary {
-    font-size: 13px;
-    font-style: italic;
-    opacity: 0.8;
+/* ---------- Filters (always one line) ---------- */
+
+.filters {
+    max-width: var(--panel-width);
+    margin: 0 auto 20px;
+    padding: 12px 14px;
+
+    background: #f3e6c8;
+    border: 1px solid rgba(60, 40, 20, 0.25);
+    border-radius: 12px;
 }
 
-.bet-actions {
+/* display rules would override the hidden attribute,
+   so this line makes sure hidden always wins */
+.filters[hidden] {
+    display: none;
+}
+
+/* A single row that never wraps. On a very narrow screen it scrolls
+   sideways instead of breaking into a second line. */
+.filter-row {
     display: flex;
-    gap: 6px;
-    margin-top: 4px;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 8px;
+
+    overflow-x: auto;
+    padding-bottom: 2px;
 }
 
-.edit-btn,
-.delete-btn {
-    padding: 4px 10px;
-    background: transparent;
-    border-radius: 5px;
+/* Smaller versions of the form fields (two classes beat the big .form-field rules) */
+.filters .form-field {
+    flex: 1 1 0;
+    min-width: 100px;
+    gap: 4px;
+}
+
+.filters .form-field.filter-date {
+    min-width: 128px;   /* a date field needs more room than a dropdown */
+}
+
+.filters .form-field label {
+    font-size: 10px;
+}
+
+.filters .form-field input,
+.filters .form-field select {
+    min-height: 34px;
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+.filter-count {
+    margin-top: 8px;
+    text-align: right;
     font-size: 12px;
+    font-style: italic;
+    opacity: 0.7;
 }
 
-.edit-btn {
-    color: #704923;
-    border: 1px solid rgba(112, 73, 35, 0.45);
-}
-
-.edit-btn:hover {
-    background: #704923;
-    color: #fffaf0;
-    opacity: 1;
-}
-
-.delete-btn {
-    color: #8a3a2c;
-    border: 1px solid rgba(138, 58, 44, 0.45);
-}
-
-.delete-btn:hover {
-    background: #8a3a2c;
-    color: #fffaf0;
-    opacity: 1;
-}
-
-/* Secondary button under the form while editing */
-#betForm .cancel-btn {
-    margin-top: 10px;
+.clear-btn {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 4px 12px;
     background: transparent;
     color: #704923;
     border: 1px solid rgba(112, 73, 35, 0.45);
+    font-size: 13px;
 }
 
-#betForm .cancel-btn:hover {
+.clear-btn:hover {
     background: rgba(112, 73, 35, 0.1);
+    opacity: 1;
 }
 
 /* ---------- Accumulator legs ---------- */
-
-/* .form-field uses display: flex, which would beat the hidden attribute,
-   so this line makes sure hidden always wins */
-.form-field[hidden] {
-    display: none;
-}
 
 .legs {
     grid-column: 1 / -1;   /* span the full width of the form grid */
@@ -724,22 +893,10 @@ button:hover {
     cursor: default;
 }
 
-/* Legs shown inside a ledger entry */
-.bet-legs {
-    margin: 6px 0 0;
-    padding-left: 16px;
-    font-size: 13px;
-    opacity: 0.8;
-}
-
-.bet-legs li {
-    margin-top: 2px;
-}
-
 /* ---------- Bankroll ---------- */
 
 .bankroll {
-    max-width: 760px;
+    max-width: var(--panel-width);
     margin: 0 auto 24px;
 
     background: #f3e6c8;
@@ -869,7 +1026,6 @@ button:hover {
     opacity: 0.65;
 }
 
-
 /* ---------- Mobile ---------- */
 
 @media (max-width: 560px) {
@@ -894,9 +1050,11 @@ button:hover {
         grid-template-columns: 1fr;
         gap: 16px;
     }
+
     .stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
     .leg-row {
         grid-template-columns: 1fr 80px 36px;
     }
@@ -904,7 +1062,8 @@ button:hover {
     .leg-row .leg-event {
         grid-column: 1 / -1;   /* event on its own line, market + odds below */
     }
-        .bankroll-form {
+
+    .bankroll-form {
         grid-template-columns: 1fr 1fr;
     }
 
@@ -915,6 +1074,31 @@ button:hover {
     .bankroll-row {
         flex-wrap: wrap;
     }
+
+    .entry-bar {
+        padding: 8px 14px;
+    }
+
+    .calendar summary {
+        padding: 12px 14px;
+    }
+
+    .cal-body {
+        padding: 12px;
+    }
+
+    .cal-summary {
+        white-space: normal;   /* let a long date wrap instead of being cut off */
+    }
+
+    .cal-day {
+        min-height: 46px;
+    }
+
+    .cal-amount {
+        font-size: 10px;
+    }
+
     .tabs {
         padding: 0 8px;
     }
@@ -925,20 +1109,15 @@ button:hover {
     }
 }
 
-
 /* ---------- Wide screens ---------- */
 
 @media (min-width: 1000px) {
-    #betForm {
-        max-width: none;
-    }
-
     .form-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
+
     #eventField,
     #marketField {
         grid-column: span 2;
     }
 }
-

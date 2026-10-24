@@ -50,8 +50,13 @@
                     </div>
                 </details>
 
-                <form id="betForm">
-                    <h3>New Entry</h3>
+                <!-- New Entry bar: the (+) button shows and hides the form below -->
+                <div class="entry-bar">
+                    <span class="entry-bar-title" id="entryBarLabel">New Entry</span>
+                    <button type="button" class="entry-toggle" id="toggleFormBtn" aria-expanded="false" aria-controls="betForm" aria-label="Show entry form">+</button>
+                </div>
+
+                <form id="betForm" hidden>
 
                     <div class="form-grid">
 
@@ -158,6 +163,7 @@
                     <p id="recentEmpty">No entries yet.</p>
                 </div>
                 <div id="recentList"></div>
+                <div class="pager" id="recentPager" hidden></div>
 
             </section>
 
@@ -186,20 +192,26 @@
                 </section>
                 <p class="stats-record" id="statRecord"></p>
 
-                 <div class="calendar" id="calendar">
-                    <div class="cal-header">
-                        <button type="button" class="cal-nav" id="calPrev" aria-label="Previous month">‹</button>
-                        <span class="cal-title" id="calTitle"></span>
-                        <button type="button" class="cal-nav" id="calNext" aria-label="Next month">›</button>
-                    </div>
-
-                    <div class="cal-grid" id="calGrid"></div>
-
-                    <div class="cal-footer">
+                <details class="calendar" id="calendar">
+                    <summary>
+                        <span class="cal-label">Calendar</span>
                         <span class="cal-summary" id="calSummary"></span>
-                        <button type="button" id="clearDayBtn" class="clear-btn" hidden>Show all days</button>
+                    </summary>
+
+                    <div class="cal-body">
+                        <div class="cal-header">
+                            <button type="button" class="cal-nav" id="calPrev" aria-label="Previous month">‹</button>
+                            <span class="cal-title" id="calTitle"></span>
+                            <button type="button" class="cal-nav" id="calNext" aria-label="Next month">›</button>
+                        </div>
+
+                        <div class="cal-grid" id="calGrid"></div>
+
+                        <div class="cal-footer">
+                            <button type="button" id="clearDayBtn" class="clear-btn" hidden>Show all days</button>
+                        </div>
                     </div>
-                </div>
+                </details>
 
                 <div class="filters" id="filters" hidden>
                     <div class="filter-row">
@@ -228,12 +240,12 @@
                             </select>
                         </div>
 
-                        <div class="form-field">
+                        <div class="form-field filter-date">
                             <label for="filterFrom">From</label>
                             <input type="date" id="filterFrom">
                         </div>
 
-                        <div class="form-field">
+                        <div class="form-field filter-date">
                             <label for="filterTo">To</label>
                             <input type="date" id="filterTo">
                         </div>
@@ -250,6 +262,7 @@
                     <p id="emptyMessage">No entries yet.</p>
                 </div>
                 <div id="betList"></div>
+                <div class="pager" id="historyPager" hidden></div>
 
             </section>
 

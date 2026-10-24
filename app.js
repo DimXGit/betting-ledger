@@ -6,6 +6,14 @@ const recentEmpty = document.getElementById("recentEmpty");
 const submitBtn = document.getElementById("submitBtn");
 const cancelEditBtn = document.getElementById("cancelEditBtn");
 
+// The bar above the form: its (+) button shows and hides the form
+const toggleFormBtn = document.getElementById("toggleFormBtn");
+const entryBarLabel = document.getElementById("entryBarLabel");
+
+// Page buttons under the two lists
+const recentPager = document.getElementById("recentPager");
+const historyPager = document.getElementById("historyPager");
+
 // Tabs
 const tabBar = document.getElementById("tabBar");
 const tabButtons = document.querySelectorAll(".tab-btn");
@@ -39,8 +47,9 @@ const clearFiltersBtn = document.getElementById("clearFiltersBtn");
 
 const STORAGE_KEY = "teft.bets";
 
-// How many entries the Ledger tab shows under the form
-const RECENT_COUNT = 5;
+// How many entries one page of each list shows
+const RECENT_PAGE_SIZE = 5;
+const HISTORY_PAGE_SIZE = 10;
 
 // Reads saved bets from localStorage. Always returns an array,
 // even if nothing is saved yet or the saved data is damaged.
@@ -106,13 +115,9 @@ let selectedDay = null;
 // The month the calendar is showing ("YYYY-MM"); starts on the current month
 let calendarMonth = getTodayString().slice(0, 7);
 
-function setTodayDate() {
-    const today = new Date();
-    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-    document.getElementById("date").value = today.toISOString().slice(0, 10);
-}
-
-setTodayDate();
+// Which page each list is showing (1 = newest entries)
+let recentPage = 1;
+let historyPage = 1;
 
 // Today as "YYYY-MM-DD" in local time (toISOString alone would use UTC)
 function getTodayString() {
@@ -120,6 +125,12 @@ function getTodayString() {
     today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
     return today.toISOString().slice(0, 10);
 }
+
+function setTodayDate() {
+    document.getElementById("date").value = getTodayString();
+}
+
+setTodayDate();
 
 // Turns special characters into harmless text so user input can't become HTML
 function escapeHtml(text) {
@@ -257,6 +268,16 @@ function showTab(name) {
     tabPanels.forEach(function (panel) {
         panel.hidden = panel.dataset.tab !== name;
     });
+}
+
+// ---------- Entry form (show / hide) ----------
+
+// Opens or closes the form under the (+) bar and keeps the button in step
+function setFormOpen(open) {
+    betForm.hidden = !open;
+    toggleFormBtn.classList.toggle("open", open);
+    toggleFormBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    toggleFormBtn.setAttribute("aria-label", open ? "Hide entry form" : "Show entry form");
 }
 
 // ---------- Accumulator legs (form) ----------
@@ -428,12 +449,42 @@ function clearFilters() {
     filterFrom.value = "";
     filterTo.value = "";
     selectedDay = null;
+    historyPage = 1;
     renderBets();
+}
+
+// ---------- Pages ----------
+
+// Cuts one page out of a list. The page number is clamped, so a page that
+// no longer exists (after deleting the last entry of it) falls back to the
+// last real page instead of showing nothing.
+function getPage(list, page, size) {
+    const totalPages = Math.max(1, Math.ceil(list.length / size));
+    const current = Math.min(Math.max(page, 1), totalPages);
+    const start = (current - 1) * size;
+
+    return {
+        items: list.slice(start, start + size),
+        page: current,
+        totalPages: totalPages
+    };
+}
+
+// Draws "←  Page 2 of 4  →" in a pager box, or hides it when one page is enough.
+// Only numbers go into the HTML here, so no escaping is needed.
+function renderPager(container, page, totalPages) {
+    container.hidden = totalPages <= 1;
+
+    container.innerHTML = `
+        <button type="button" class="page-btn" data-dir="-1" aria-label="Previous page"${page <= 1 ? " disabled" : ""}>←</button>
+        <span class="page-info">Page ${page} of ${totalPages}</span>
+        <button type="button" class="page-btn" data-dir="1" aria-label="Next page"${page >= totalPages ? " disabled" : ""}>→</button>
+    `;
 }
 
 // ---------- Edit / delete ----------
 
-// Puts the form back into "add new bet" mode
+// Puts the form back into "add new bet" mode and closes it
 function stopEditing() {
     editingId = null;
     betForm.reset();
@@ -442,6 +493,8 @@ function stopEditing() {
     setTodayDate();
     submitBtn.textContent = "+ Write Entry";
     cancelEditBtn.hidden = true;
+    entryBarLabel.textContent = "New Entry";
+    setFormOpen(false);
 }
 
 // Fills the form with an existing bet and switches to "edit" mode
@@ -485,8 +538,10 @@ function startEdit(id) {
 
     submitBtn.textContent = "Save Changes";
     cancelEditBtn.hidden = false;
+    entryBarLabel.textContent = "Editing Entry";
 
-    // On mobile the form may be off-screen, so bring it into view
+    // Open the form first: you can't scroll to something that is hidden
+    setFormOpen(true);
     betForm.scrollIntoView({ behavior: "smooth" });
 }
 
@@ -565,17 +620,25 @@ function renderBets() {
 
     const visible = getFilteredBets();
 
-    // Full history (Stats tab): filtered, newest first
+    // Full history (Stats tab): filtered, newest first, one page at a time
+    const history = getPage([...visible].reverse(), historyPage, HISTORY_PAGE_SIZE);
+    historyPage = history.page;   // keep the clamped number
+
     betList.innerHTML = "";
-    [...visible].reverse().forEach(function (bet) {
+    history.items.forEach(function (bet) {
         betList.appendChild(createBetEntry(bet));
     });
+    renderPager(historyPager, history.page, history.totalPages);
 
-    // Recent entries (Ledger tab): the last few bets, never filtered
+    // Recent entries (Ledger tab): all bets, newest first, never filtered
+    const recent = getPage([...bets].reverse(), recentPage, RECENT_PAGE_SIZE);
+    recentPage = recent.page;
+
     recentList.innerHTML = "";
-    bets.slice(-RECENT_COUNT).reverse().forEach(function (bet) {
+    recent.items.forEach(function (bet) {
         recentList.appendChild(createBetEntry(bet));
     });
+    renderPager(recentPager, recent.page, recent.totalPages);
     recentEmpty.style.display = bets.length === 0 ? "block" : "none";
 
     // Two different empty situations need two different messages
@@ -597,7 +660,7 @@ function renderBets() {
     // are refreshed here and can never get out of sync with the list
     renderStats(visible);
 
-     // The calendar colours days by profit, so it follows the bets too
+    // The calendar colours days by profit, so it follows the bets too
     renderCalendar();
 
     // Bookmaker balances depend on the bets, so refresh them too
@@ -738,6 +801,7 @@ calGrid.addEventListener("click", function (event) {
 
     // Clicking the selected day again deselects it
     selectedDay = selectedDay === cell.dataset.date ? null : cell.dataset.date;
+    historyPage = 1;
     renderBets();
 });
 
@@ -751,6 +815,7 @@ calNext.addEventListener("click", function () {
 
 clearDayBtn.addEventListener("click", function () {
     selectedDay = null;
+    historyPage = 1;
     renderBets();
 });
 
@@ -991,6 +1056,37 @@ function handleEntryClick(event) {
 betList.addEventListener("click", handleEntryClick);
 recentList.addEventListener("click", handleEntryClick);
 
+// Page buttons: data-dir is "-1" (←) or "1" (→). renderBets() clamps the
+// page number, so it can never go below 1 or past the last page.
+recentPager.addEventListener("click", function (event) {
+    const button = event.target.closest(".page-btn");
+    if (!button) {
+        return;
+    }
+    recentPage += Number(button.dataset.dir);
+    renderBets();
+});
+
+historyPager.addEventListener("click", function (event) {
+    const button = event.target.closest(".page-btn");
+    if (!button) {
+        return;
+    }
+    historyPage += Number(button.dataset.dir);
+    renderBets();
+});
+
+// The (+) button: open the form, or close it (closing while editing cancels the edit)
+toggleFormBtn.addEventListener("click", function () {
+    if (betForm.hidden) {
+        setFormOpen(true);
+    } else if (editingId !== null) {
+        stopEditing();
+    } else {
+        setFormOpen(false);
+    }
+});
+
 // One listener for the whole tab bar
 tabBar.addEventListener("click", function (event) {
     const button = event.target.closest(".tab-btn");
@@ -1002,8 +1098,11 @@ tabBar.addEventListener("click", function (event) {
 cancelEditBtn.addEventListener("click", stopEditing);
 
 // "change" bubbles up from every dropdown and date input inside the filter
-// box, so one listener covers all five fields
-filtersEl.addEventListener("change", renderBets);
+// box, so one listener covers all five fields. A new filter starts at page 1.
+filtersEl.addEventListener("change", function () {
+    historyPage = 1;
+    renderBets();
+});
 clearFiltersBtn.addEventListener("click", clearFilters);
 
 // Bet type switched: show the legs section or the single-bet fields
@@ -1071,8 +1170,11 @@ betForm.addEventListener("submit", function (event) {
     };
 
     if (editingId === null) {
-        // Add mode: new bet with a new id
+        // Add mode: new bet with a new id, and jump back to the first
+        // page so the new entry (the newest) is visible
         bets.push({ id: Date.now(), ...formData });
+        recentPage = 1;
+        historyPage = 1;
     } else {
         // Edit mode: replace the matching bet, keeping its id (and its position)
         bets = bets.map(function (bet) {
@@ -1082,8 +1184,8 @@ betForm.addEventListener("submit", function (event) {
 
     saveBets();
     renderBets();
-    stopEditing(); // also resets the form and the date, for both modes
+    stopEditing(); // also resets the form and the date, and closes the form
 });
 
 updateBetTypeUI();
-renderBets();   // also draws the stats, the recent list and the bankroll
+renderBets();   // also draws the stats, both lists, the calendar and the bankroll
